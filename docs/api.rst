@@ -1,7 +1,7 @@
 .. currentmodule:: bdms
 
 Classes
--------
+=======
 
 The primary class :py:class:`TreeNode` subclasses ETE's
 :py:class:`ete3.TreeNode`.
@@ -17,7 +17,7 @@ The primary class :py:class:`TreeNode` subclasses ETE's
    :special-members:
 
 Modules
--------
+=======
 
 .. autosummary::
     :toctree: _autosummary
