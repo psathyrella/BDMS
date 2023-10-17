@@ -37,18 +37,6 @@ class Response(ABC):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    @property
-    @abstractmethod
-    def _param_dict(self):
-        """Returns a dictionary containing all parameters of the response function."""
-
-    @_param_dict.setter
-    @abstractmethod
-    def _param_dict(self, d):
-        """Configures the parameter values of the response function using the provided
-        dictionary (whose format matches that returned by the `Response._param_dict`
-        getter method."""
-
     def __call__(self, node: bdms.TreeNode) -> float:
         r"""Call ``self`` to evaluate the Poisson intensity at a tree node.
 
@@ -197,14 +185,6 @@ class ConstantResponse(PhenotypeResponse):
     def λ_phenotype(self, x: float) -> float:
         return self.value * np.ones_like(x)
 
-    @property
-    def _param_dict(self) -> dict:
-        return dict(value=self.value)
-
-    @_param_dict.setter
-    def _param_dict(self, d):
-        self.value = d["value"]
-
 
 class ExponentialResponse(PhenotypeResponse):
     r"""Exponential response function on a :py:class:`bdms.TreeNode` object's phenotype
@@ -234,22 +214,6 @@ class ExponentialResponse(PhenotypeResponse):
     def λ_phenotype(self, x: float) -> float:
         x = np.asarray(x)
         return self.yscale * np.exp(self.xscale * (x - self.xshift)) + self.yshift
-
-    @property
-    def _param_dict(self) -> dict:
-        return dict(
-            xscale=self.xscale,
-            xshift=self.xshift,
-            yscale=self.yscale,
-            yshift=self.yshift,
-        )
-
-    @_param_dict.setter
-    def _param_dict(self, d):
-        self.xscale = d["xscale"]
-        self.xshift = d["xshift"]
-        self.yscale = d["yscale"]
-        self.yshift = d["yshift"]
 
 
 class SigmoidResponse(PhenotypeResponse):
@@ -281,22 +245,6 @@ class SigmoidResponse(PhenotypeResponse):
     def λ_phenotype(self, x: float) -> float:
         x = np.asarray(x)
         return self.yscale * sp.expit(self.xscale * (x - self.xshift)) + self.yshift
-
-    @property
-    def _param_dict(self) -> dict:
-        return dict(
-            xscale=self.xscale,
-            xshift=self.xshift,
-            yscale=self.yscale,
-            yshift=self.yshift,
-        )
-
-    @_param_dict.setter
-    def _param_dict(self, d):
-        self.xscale = d["xscale"]
-        self.xshift = d["xshift"]
-        self.yscale = d["yscale"]
-        self.yshift = d["yshift"]
 
 
 class PhenotypeTimeResponse(Response):
@@ -394,14 +342,6 @@ class ModulatedPhenotypeResponse(PhenotypeTimeResponse):
         effective_phenotype = self.interaction(x, self.external_field(t))
         return self.phenotype_response.λ_phenotype(effective_phenotype)
 
-    @property
-    def _param_dict(self) -> dict:
-        return self.phenotype_response._param_dict
-
-    @_param_dict.setter
-    def _param_dict(self, d):
-        self.phenotype_response._param_dict = d
-
 
 class ModulatedRateResponse(PhenotypeTimeResponse):
     r"""An inhomogeneous phenotype response that modulates a homogeneous phenotype
@@ -431,11 +371,3 @@ class ModulatedRateResponse(PhenotypeTimeResponse):
 
     def λ_phenotype_time(self, x: float, t: float) -> float:
         return self.modulation(self.phenotype_response.λ_phenotype(x), x, t)
-
-    @property
-    def _param_dict(self) -> dict:
-        return self.phenotype_response._param_dict
-
-    @_param_dict.setter
-    def _param_dict(self, d):
-        self.phenotype_response._param_dict = d
