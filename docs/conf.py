@@ -9,20 +9,20 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 import os
 import sys
+import bdms
 
 sys.path.insert(0, os.path.abspath(".."))  # Source code dir relative to this file
 
 # -- Project information -----------------------------------------------------
 
-project = "bdms"
+project = "BDMS"
 author = "William DeWitt"
 copyright = "2023, William DeWitt"
 
-# No version in docs, doesn't play nice with versioneer
 # The short X.Y version
-version = ""
+version = bdms.__version__
 # The full version, including alpha/beta/rc tags
-release = ""
+release = bdms.__version__
 
 # -- General configuration ---------------------------------------------------
 

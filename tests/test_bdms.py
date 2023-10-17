@@ -1,5 +1,5 @@
 import numpy as np
-from bdms import bdms, mutators, poisson
+import bdms
 import unittest
 
 
@@ -11,15 +11,15 @@ class TestTreeNode(unittest.TestCase):
             try:
                 self.tree.evolve(
                     5,
-                    poisson.SigmoidResponse(1, 0, 2, 0),
-                    poisson.ConstantResponse(1),
-                    poisson.ConstantResponse(1),
-                    mutators.GaussianMutator(-1, 1),
+                    bdms.poisson.SigmoidResponse(1, 0, 2, 0),
+                    bdms.poisson.ConstantResponse(1),
+                    bdms.poisson.ConstantResponse(1),
+                    bdms.mutators.GaussianMutator(-1, 1),
                     min_survivors=20,
                     seed=seed,
                 )
                 break
-            except bdms.TreeError:
+            except bdms.tree.TreeError:
                 continue
 
     def test_sample_survivors(self):

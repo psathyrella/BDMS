@@ -20,7 +20,7 @@ import scipy.special as sp
 
 # imports that are only used for type hints
 if TYPE_CHECKING:
-    from bdms import bdms
+    import bdms
 
 # NOTE: sphinx is currently unable to present this in condensed form when the
 #       sphinx_autodoc_typehints extension is enabled
@@ -52,8 +52,8 @@ class Response(ABC):
     def __call__(self, node: bdms.TreeNode) -> float:
         r"""Call ``self`` to evaluate the Poisson intensity at a tree node.
 
-        Args:     node: The node whose state is accessed to evaluate the response
-        function.
+        Args:
+            node: The node whose state is accessed to evaluate the response function.
         """
         return self.λ((node,), 0.0)[0]
 
@@ -62,10 +62,11 @@ class Response(ABC):
         r"""Evaluate the Poisson intensity :math:`\lambda(t+\Delta t)` for a collection
         of tree nodes at time :math:`t`.
 
-        Args:     nodes: Nodes whose states are accessed to evaluate the response
-        function.     Δt: Time shift from ``nodes`` at which to evaluate Poisson
-        intensity         (``0.0`` corresponds to the nodes' time). This only has an
-        effect if the         response function is time-inhomogeneous.
+        Args:
+            nodes: Nodes whose states are accessed to evaluate the response function.
+            Δt: Time shift from ``nodes`` at which to evaluate Poisson intensity
+                (``0.0`` corresponds to the nodes' time). This only has an effect if the
+                response function is time-inhomogeneous.
         """
 
     @abstractmethod
@@ -78,8 +79,9 @@ class Response(ABC):
         for tree nodes at time :math:`t`. This is needed for sampling waiting times and
         evaluating the log probability density function of waiting times.
 
-        Args:     nodes: Nodes whose states are accessed to evaluate the response
-        function.     Δt: Time interval duration (Lebesgue measure).
+        Args:
+            nodes: Nodes whose states are accessed to evaluate the response function.
+            Δt: Time interval duration (Lebesgue measure).
         """
 
     @abstractmethod
@@ -89,8 +91,9 @@ class Response(ABC):
         t+\Delta t)) = \Delta t`. This is needed for sampling waiting times. Note that
         :math:`\Lambda_t^{-1}` is well-defined iff :math:`\lambda(t) > 0 \forall t`.
 
-        Args:     nodes: Nodes whose states are accessed to evaluate the response
-        function.     τ: Poisson intensity measure of a time interval.
+        Args:
+            nodes: Nodes whose states are accessed to evaluate the response function.
+            τ: Poisson intensity measure of a time interval.
         """
 
     def waiting_time_rv(
@@ -102,14 +105,15 @@ class Response(ABC):
         r"""Sample the waiting time :math:`\Delta t` until the first event, given the
         rate process starting at the provided nodes.
 
-        Args:     nodes: The nodes at which the rate process starts.
-        rate_multiplier: A multiplicative factor to apply to the rate process when
-        sampling the waiting time. This can be used to impose a
-        population-size constraint in simulations.     seed: A seed to initialize the
-        random number generation.           If ``None``, then fresh, unpredictable
-        entropy will be pulled from the OS.           If an ``int``, then it will be
-        used to derive the initial state.           If a
-        :py:class:`numpy.random.Generator`, then it will be used directly.
+        Args:
+            nodes: The nodes at which the rate process starts.
+            rate_multiplier: A multiplicative factor to apply to the rate process when
+                             sampling the waiting time. This can be used to impose a
+                             population-size constraint in simulations.
+            seed: A seed to initialize the random number generation. If ``None``, then
+                  fresh, unpredictable entropy will be pulled from the OS. If an
+                  ``int``, then it will be used to derive the initial state. If a
+                  :py:class:`numpy.random.Generator`, then it will be used directly.
         """
         if rate_multiplier == 0.0:
             return float("inf")
@@ -120,8 +124,9 @@ class Response(ABC):
         r"""Evaluate the logarithm of the survival function of the waiting time
         :math:`\Delta t` given the rate process starting at the provided node.
 
-        Args:     node: The node at which the rate process starts.     Δt: The waiting
-        time.
+        Args:
+            node: The node at which the rate process starts.
+            Δt: The waiting time.
         """
         return -self.Λ((node,), Δt)
 
@@ -132,23 +137,6 @@ class Response(ABC):
             if not key.startswith("_")
         )
         return f"{self.__class__.__name__}({', '.join(keyval_strs)})"
-
-    def _flatten(self):
-        """Separates out the components of a Response object so its raw parameter values
-        can be used in model fitting."""
-        items = sorted(self._param_dict.items(), key=lambda item: item[0])
-        names, values = zip(*items)
-        return type(self), names, values
-
-    @classmethod
-    def _from_flat(response_type, names, values):
-        """Reverses `_flatten`. Usage: flat = response._flatten()
-
-        flat[0]._from_flat(*flat[1:])
-        """
-        new_obj = response_type()
-        new_obj._param_dict = dict(zip(names, values))
-        return new_obj
 
 
 ResponseType = TypeVar("ResponseType", bound=Response)
@@ -162,8 +150,9 @@ class HomogeneousResponse(Response):
     def λ_homogeneous(self, nodes: Iterable[bdms.TreeNode]) -> Iterable[float]:
         r"""Evaluate the homogeneous Poisson intensity :math:`\lambda` for tree nodes.
 
-        Args:     nodes: The nodes whose states are accessed to evaluate the response
-        function.
+        Args:
+            nodes: The nodes whose states are accessed to evaluate the response
+                   function.
         """
 
     def λ(self, nodes: Iterable[bdms.TreeNode], Δt: float) -> Iterable[float]:
@@ -189,7 +178,8 @@ class PhenotypeResponse(HomogeneousResponse):
     def λ_phenotype(self, x: float) -> float:
         r"""Evaluate the Poisson intensity :math:`\lambda_x` for phenotype :math:`x`.
 
-        Args:     x: Phenotype value.
+        Args:
+            x: Phenotype value.
         """
 
 
@@ -197,7 +187,8 @@ class ConstantResponse(PhenotypeResponse):
     r"""Returns attribute :math:`\theta\in\mathbb{R}` when an instance is called on any
     :py:class:`bdms.TreeNode`.
 
-    Args:     value: Constant response value.
+    Args:
+        value: Constant response value.
     """
 
     def __init__(self, value: float = 1.0):
@@ -221,8 +212,11 @@ class ExponentialResponse(PhenotypeResponse):
 
     .. math::     \lambda_x = \theta_3 e^{\theta_1 (x - \theta_2)} + \theta_4
 
-    Args:     xscale: :math:`\theta_1`     xshift: :math:`\theta_2`     yscale:
-    :math:`\theta_3`     yshift: :math:`\theta_4`
+    Args:
+        xscale: :math:`\theta_1`
+        xshift: :math:`\theta_2`
+        yscale: :math:`\theta_3`
+        yshift: :math:`\theta_4`
     """
 
     def __init__(
@@ -265,8 +259,11 @@ class SigmoidResponse(PhenotypeResponse):
     .. math::     \lambda_x = \frac{\theta_3}{1 + e^{-\theta_1 (x - \theta_2)}} +
     \theta_4
 
-    Args:     xscale: :math:`\theta_1`     xshift: :math:`\theta_2`     yscale:
-    :math:`\theta_3`     yshift: :math:`\theta_4`
+    Args:
+        xscale: :math:`\theta_1`
+        xshift: :math:`\theta_2`
+        yscale: :math:`\theta_3`
+        yshift: :math:`\theta_4`
     """
 
     def __init__(
@@ -311,8 +308,9 @@ class PhenotypeTimeResponse(Response):
     This abstract base class provides generic default implementations of :py:meth:`Λ`
     and :py:meth:`Λ_inv` via quadrature and root-finding, respectively.
 
-    Args:     tol: Tolerance for root-finding.     maxiter: Maximum number of iterations
-    for root-finding.
+    Args:
+        tol: Tolerance for root-finding.
+        maxiter: Maximum number of iterations for root-finding.
     """
 
     def __init__(self, tol: float = 1e-6, maxiter: int = 100, *args, **kwargs):
@@ -324,7 +322,9 @@ class PhenotypeTimeResponse(Response):
         r"""Evaluate the Poisson intensity :math:`\lambda_x(t)` for phenotype :math:`x`
         at time :math:`t`.
 
-        Args:     x: Phenotype.     t: Time.
+        Args:
+            x: Phenotype.
+            t: Time.
         """
 
     def λ(self, nodes: Iterable[bdms.TreeNode], Δt: float) -> Iterable[float]:
@@ -365,12 +365,15 @@ class ModulatedPhenotypeResponse(PhenotypeTimeResponse):
     phenotype shift. The homogeneous phenotype response is evaluated at the effective
     phenotype.
 
-    Args:     phenotype_response: a homogeneous phenotype response for the effective
-    phenotype :math:`x - f(t)`.     external_field: external field :math:`f(t)`, a
-    function that maps time to the external field.     interaction: a function
-    :math:`\phi(x, f(t))` that maps the phenotype and external field to the effective
-    phenotype.     tol: See :py:class:`PhenotypeTimeResponse`.     maxiter: See
-    :py:class:`PhenotypeTimeResponse`.
+    Args:
+        phenotype_response: a homogeneous phenotype response for the effective
+                            phenotype :math:`x - f(t)`.
+        external_field: external field :math:`f(t)`, a function that maps time to the
+                        external field.
+        interaction: a function :math:`\phi(x, f(t))` that maps the phenotype and
+                     external field to the effective phenotype.
+        tol: See :py:class:`PhenotypeTimeResponse`.
+        maxiter: See :py:class:`PhenotypeTimeResponse`.
     """
 
     def __init__(
@@ -405,11 +408,13 @@ class ModulatedRateResponse(PhenotypeTimeResponse):
     response rate :math:`\lambda_x` via a time-dependent function
     :math:`\tilde\lambda(\lambda_x, x, t)` to yield a time-dependent modulated rate.
 
-    Args:     phenotype_response: a homogeneous phenotype response.     modulation: a
-    function :math:`\tilde\lambda(\lambda_x, x, t)` that maps the original rate
-    :math:`\lambda_x`, phenotype :math:`x`, and time :math:`t` to the modulated rate.
-    tol: See :py:class:`PhenotypeTimeResponse`.     maxiter: See
-    :py:class:`PhenotypeTimeResponse`.
+    Args:
+        phenotype_response: a homogeneous phenotype response.
+        modulation: a function :math:`\tilde\lambda(\lambda_x, x, t)` that maps the
+                    original rate :math:`\lambda_x`, phenotype :math:`x`, and time
+                    :math:`t` to the modulated rate.
+        tol: See :py:class:`PhenotypeTimeResponse`.
+        maxiter: See :py:class:`PhenotypeTimeResponse`.
     """
 
     def __init__(

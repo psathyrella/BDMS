@@ -59,7 +59,7 @@ dev = [
 ]
 
 [tool.hatch.version]
-path = "bdms/__about__.py"
+path = "bdms/__init__.py"
 
 [project.urls]
 "Homepage" = "https://github.com/WSDeWitt/BDMS"

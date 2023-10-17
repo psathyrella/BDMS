@@ -35,11 +35,12 @@ class Mutator(ABC):
     ) -> None:
         r"""Mutate a :py:class:`ete3.TreeNode` object in place.
 
-        Args:     node: A :py:class:`ete3.TreeNode` to mutate.     seed: A seed to
-        initialize the random number generation. If ``None``, then fresh,
-        unpredictable entropy will be pulled from the OS.           If an ``int``, then
-        it will be used to derive the initial state.           If a
-        :py:class:`numpy.random.Generator`, then it will be used directly.
+        Args:
+            node: A :py:class:`ete3.TreeNode` to mutate.
+            seed: A seed to initialize the random number generation. If ``None``, then
+                  fresh, unpredictable entropy will be pulled from the OS. If an
+                  ``int``, then it will be used to derive the initial state. If a
+                  :py:class:`numpy.random.Generator`, then it will be used directly.
         """
 
     @abstractmethod
@@ -47,7 +48,8 @@ class Mutator(ABC):
         r"""Compute the log probability that a mutation effect on the parent of ``node``
         gives ``node``.
 
-        Args:     node: Mutant node.
+        Args:
+            node: Mutant node.
         """
 
     @property
@@ -68,7 +70,8 @@ class AttrMutator(Mutator):
     r"""Abstract base class for mutators that mutate a specified
     :py:class:`ete3.TreeNode` node attribute.
 
-    Args:     attr: Node attribute to mutate.
+    Args:
+        attr: Node attribute to mutate.
     """
 
     def __init__(self, attr: str = "x", *args: Any, **kwargs: Any) -> None:
@@ -89,16 +92,20 @@ class AttrMutator(Mutator):
         continuous) or mass (if ``attr`` is discrete) that a mutation event brings
         attribute value ``attr1`` to attribute value ``attr2`` (e.g. for plotting).
 
-        Args:     attr1: Initial attribute value.     attr2: Final attribute value.
-        log: If ``True``, return the log probability density.
+        Args:
+            attr1: Initial attribute value.
+            attr2: Final attribute value.
+            log: If ``True``, return the log probability density.
         """
 
 
 class GaussianMutator(AttrMutator):
     r"""Gaussian mutation effects on a specified attribute.
 
-    Args:     shift: Mean shift wrt current attribute value.     scale: Standard
-    deviation of mutation effect.     attr: Node attribute to mutate.
+    Args:
+        shift: Mean shift wrt current attribute value.
+        scale: Standard deviation of mutation effect.
+        attr: Node attribute to mutate.
     """
 
     def __init__(
@@ -129,9 +136,11 @@ class KdeMutator(AttrMutator):
     r"""Gaussian kernel density estimator (KDE) for mutation effect on a specified
     attribute.
 
-    Args:     dataset: Data to fit the KDE to.     attr: Node attribute to mutate.
-    bw_method: KDE bandwidth (see :py:class:`scipy.stats.gaussian_kde`).     weights:
-    Weights of data points (see :py:class:`scipy.stats.gaussian_kde`).
+    Args:
+        dataset: Data to fit the KDE to.
+        attr: Node attribute to mutate.
+        bw_method: KDE bandwidth (see :py:class:`scipy.stats.gaussian_kde`).
+        weights: Weights of data points (see :py:class:`scipy.stats.gaussian_kde`).
     """
 
     def __init__(
@@ -163,9 +172,11 @@ class KdeMutator(AttrMutator):
 class DiscreteMutator(AttrMutator):
     r"""Mutations on a discrete space with a stochastic matrix.
 
-    Args:     state_space: hashable state values.     transition_matrix: Right-
-    stochastic matrix, where column and row orders match the order of `state_space`.
-    attr: Node attribute to mutate.
+    Args:
+        state_space: hashable state values.
+        transition_matrix: Right-stochastic matrix, where column and row orders match
+                           the order of `state_space`.
+        attr: Node attribute to mutate.
     """
 
     def __init__(
