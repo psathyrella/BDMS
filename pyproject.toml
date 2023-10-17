@@ -64,4 +64,4 @@ path = "bdms/__about__.py"
 [project.urls]
 "Homepage" = "https://github.com/WSDeWitt/BDMS"
 "Bug Tracker" = "https://github.com/WSDeWitt/BDMS/issues"
-"Documentation" = "???"
+"Documentation" = "https://wsdewitt.github.io/BDMS"
