@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v3        
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -33,6 +35,9 @@ jobs:
           make docs
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
+        with:
+          name: docs
+          path: docs/_build/html
 
   deploy:
     environment:
