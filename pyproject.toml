@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+# this allows dependencies to be specified with a url
+allow-direct-references = true
+
+[project]
+name = "BDMS"
+authors = [
+  { name="Thanasi Bakis", email="abakis@uci.edu" },
+  { name="Michael Celentano", email="mcelentano@berkeley.edu" },
+  { name="William DeWitt", email="wsdewitt@gmail.com" },
+  { name="Frederick Matsen", email="ematsen@gmail.com" },
+  { name="Volodymyr Minin", email="yss@berkeley.edu" },
+  { name="Sebastian Prillo", email="sprillo@berkeley.edu" },
+  { name="Duncan Ralph", email="dkralph@gmail.com" },
+  { name="Yoonseo Song", email="ysong07@cs.washington.edu" },
+  { name="Yun Song", email="yss@berkeley.edu" },
+]
+description = "Tree simulator for birth-death-mutation-sampling (BDMS) processes"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dynamic = [
+  "version"
+]
+dependencies = [
+# "ete4[treeview]",
+  "matplotlib",
+  "numpy",
+  "scipy",
+]
+
+[project.optional-dependencies]
+dev = [
+  "black[jupyter]",
+  "docformatter",
+  "flake8",
+  "pytest",
+  "nbval",
+  "sphinx",
+  "sphinx-argparse",
+  "sphinx-book-theme",
+  "sphinx-autodoc-typehints",
+  "sphinx-copybutton",
+  "myst-nb",
+  "pandoc",
+  "jupyter",
+  "seaborn",
+]
+
+[tool.hatch.version]
+path = "bdms/__about__.py"
+
+[project.urls]
+"Homepage" = "https://github.com/WSDeWitt/BDMS"
+"Bug Tracker" = "https://github.com/WSDeWitt/BDMS/issues"
+"Documentation" = "???"
