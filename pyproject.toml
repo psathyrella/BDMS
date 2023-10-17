@@ -31,13 +31,16 @@ dynamic = [
   "version"
 ]
 dependencies = [
-# "ete4[treeview]",
   "matplotlib",
   "numpy",
   "scipy",
 ]
 
 [project.optional-dependencies]
+ete = [
+  "ete3",
+  "pyqt5",
+]
 dev = [
   "black[jupyter]",
   "docformatter",

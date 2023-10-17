@@ -1,7 +1,10 @@
 default:
 
 install:
-	pip install -e ".[dev]"
+	pip install -e .[dev]
+
+install-ete:
+	pip install -e .[dev,ete]
 
 test:
 	pytest
