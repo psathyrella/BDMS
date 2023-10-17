@@ -39,7 +39,7 @@ from bdms import mutators, poisson
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from typing import Any, Optional, Union, Literal, Iterator
+from typing import Any, Optional, Union, Literal, Iterator, Self
 import itertools
 import copy
 
@@ -96,7 +96,7 @@ class TreeNode(ete3.Tree):
 
     def _birth_outcome(
         self, birth_mutations: bool, mutator: mutators.Mutator, rng: np.random.Generator
-    ) -> Iterator[TreeNode]:
+    ) -> Iterator[Self]:
         r"""Generate the outcome of a birth event at this node.
 
         Args:
@@ -134,7 +134,7 @@ class TreeNode(ete3.Tree):
 
     def _mutation_outcome(
         self, mutator: mutators.Mutator, rng: np.random.Generator
-    ) -> Iterator[TreeNode]:
+    ) -> Iterator[Self]:
         r"""Generate the outcome of a mutation event at this node.
 
         Args:
