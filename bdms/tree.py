@@ -11,6 +11,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from typing import Any, Optional, Union, Literal, Iterator, Self
 import itertools
+from collections import defaultdict
 import copy
 
 
@@ -84,8 +85,7 @@ class TreeNode(ete3.Tree):
                 dist=0,
                 name=next(self._name_generator),
             )
-            for attr in mutator.mutated_attrs:
-                setattr(child, attr, copy.copy(getattr(self, attr)))
+            setattr(child, mutator.attr, copy.copy(getattr(self, mutator.attr)))
             if birth_mutations:
                 child.event = self._MUTATION_EVENT
                 mutator.mutate(child, seed=rng)
@@ -94,8 +94,9 @@ class TreeNode(ete3.Tree):
                     dist=0,
                     name=next(self._name_generator),
                 )
-                for attr in mutator.mutated_attrs:
-                    setattr(grandchild, attr, copy.copy(getattr(child, attr)))
+                setattr(
+                    grandchild, mutator.attr, copy.copy(getattr(child, mutator.attr))
+                )
                 child.add_child(grandchild)
                 yield grandchild
             else:
@@ -121,17 +122,16 @@ class TreeNode(ete3.Tree):
             dist=0,
             name=next(self._name_generator),
         )
-        for attr in mutator.mutated_attrs:
-            setattr(child, attr, copy.copy(getattr(self, attr)))
+        setattr(child, mutator.attr, copy.copy(getattr(self, mutator.attr)))
         self.add_child(child)
         yield child
 
     def evolve(
         self,
         t: float,
-        birth_response: poisson.Response = poisson.ConstantResponse(1),
-        death_response: poisson.Response = poisson.ConstantResponse(0),
-        mutation_response: poisson.Response = poisson.ConstantResponse(1),
+        birth_process: poisson.Process = poisson.ConstantProcess(1),
+        death_process: poisson.Process = poisson.ConstantProcess(0),
+        mutation_process: poisson.Process = poisson.ConstantProcess(1),
         mutator: mutators.Mutator = mutators.GaussianMutator(shift=0, scale=1),
         birth_mutations: bool = False,
         min_survivors: int = 1,
@@ -145,9 +145,9 @@ class TreeNode(ete3.Tree):
 
         Args:
             t: Evolve for a duration of :math:`t` time units.
-            birth_response: Birth rate response function.
-            death_response: Death rate response function.
-            mutation_response: Mutation rate response function.
+            birth_process: Birth process function.
+            death_process: Death process function.
+            mutation_process: Mutation process function.
             mutator: Generator of mutation effects at mutation events
                      (and on offspring of birth events if ``birth_mutations=True``).
             birth_mutations: Flag to indicate whether mutations should occur at birth.
@@ -185,36 +185,48 @@ class TreeNode(ete3.Tree):
             )
         if init_population > capacity:
             raise ValueError(f"{init_population=} must be less than {capacity=}")
-        for attr in mutator.mutated_attrs:
-            if not hasattr(self, attr):
-                raise ValueError(
-                    f"node {self.name} does not have attribute {attr} "
-                    "specified in mutator"
-                )
+        if birth_process.attr != death_process.attr != mutation_process.attr:
+            raise ValueError(
+                f"Event processes must refer to the same node attribute. Got: "
+                f"{birth_process.attr=}, {death_process.attr=}, "
+                f"{mutation_process.attr=}"
+            )
+        state_attr = birth_process.attr
+        if not hasattr(self, state_attr):
+            raise ValueError(
+                f"node {self.name} does not have attribute {state_attr} "
+                "required by mutator"
+            )
+        # NOTE: this may go later when we revise how mutators work
+        if mutator.attr != state_attr:
+            raise ValueError(
+                f"mutator attribute {mutator.attr} does not match state attribute "
+                f"{state_attr}"
+            )
 
         rng = np.random.default_rng(seed)
 
         if verbose:
 
-            def print_progress(current_time, n_active_nodes):
-                print(f"t={current_time:.3f}, n={n_active_nodes}", end="   \r")
+            def print_progress(current_time, n_nodes_active):
+                print(f"t={current_time:.3f}, n={n_nodes_active}", end="   \r")
 
         else:
 
-            def print_progress(current_time, n_active_nodes):
+            def print_progress(current_time, n_nodes_active):
                 pass
 
         current_time = self.t
         end_time = self.t + t
-        event_rates = {
-            self._BIRTH_EVENT: birth_response,
-            self._DEATH_EVENT: death_response,
-            self._MUTATION_EVENT: mutation_response,
+        processes = {
+            self._BIRTH_EVENT: birth_process,
+            self._DEATH_EVENT: death_process,
+            self._MUTATION_EVENT: mutation_process,
         }
 
         # initialize population
-        active_nodes = {}
-        n_active_nodes = 0
+        names_nodes_active = dict()
+        state_names_active = defaultdict(set)
         total_birth_rate = 0.0
         total_death_rate = 0.0
         for _ in range(init_population):
@@ -223,13 +235,12 @@ class TreeNode(ete3.Tree):
                 dist=0,
                 name=next(self._name_generator),
             )
-            for attr in mutator.mutated_attrs:
-                setattr(start_node, attr, copy.copy(getattr(self, attr)))
+            setattr(start_node, state_attr, copy.copy(getattr(self, state_attr)))
             self.add_child(start_node)
-            active_nodes[start_node.name] = start_node
-            n_active_nodes += 1
-            total_birth_rate += birth_response(start_node)
-            total_death_rate += death_response(start_node)
+            names_nodes_active[start_node.name] = start_node
+            state_names_active[getattr(start_node, state_attr)].add(start_node.name)
+            total_birth_rate += birth_process(start_node)
+            total_death_rate += death_process(start_node)
 
         # initialize rate multipliers, which are used to modulate
         # rates in accordance with the carrying capacity
@@ -238,62 +249,70 @@ class TreeNode(ete3.Tree):
             self._DEATH_EVENT: 1.0,
             self._MUTATION_EVENT: 1.0,
         }
-        while n_active_nodes:
+        while names_nodes_active:
             if capacity_method == "birth":
                 rate_multipliers[self._BIRTH_EVENT] = (
                     total_death_rate / total_birth_rate
-                ) ** (n_active_nodes / capacity)
+                ) ** (len(names_nodes_active) / capacity)
             elif capacity_method == "death":
                 rate_multipliers[self._DEATH_EVENT] = (
                     total_birth_rate / total_death_rate
-                ) ** (n_active_nodes / capacity)
+                ) ** (len(names_nodes_active) / capacity)
             elif capacity_method == "hard":
-                if n_active_nodes > capacity:
-                    node_to_die = rng.choice(list(active_nodes.values()))
+                if len(names_nodes_active) > capacity:
+                    # NOTE tuple cast is inefficient
+                    node_to_die_name = rng.choice(tuple(names_nodes_active))
+                    node_to_die = names_nodes_active[node_to_die_name]
                     node_to_die.event = self._DEATH_EVENT
-                    del active_nodes[node_to_die.name]
-                    n_active_nodes -= 1
-                    total_birth_rate -= birth_response(node_to_die)
-                    total_death_rate -= death_response(node_to_die)
+                    del names_nodes_active[node_to_die.name]
+                    state_names_active[getattr(node_to_die, state_attr)].remove(
+                        node_to_die.name
+                    )
+                    total_birth_rate -= birth_process(node_to_die)
+                    total_death_rate -= death_process(node_to_die)
             elif capacity_method is None:
-                if n_active_nodes > capacity:
+                if len(names_nodes_active) > capacity:
                     self._aborted_evolve_cleanup()
                     if verbose:
                         print()
                     raise TreeError(f"{capacity=} exceeded at time={current_time}")
             else:
                 raise ValueError(f"{capacity_method=} not recognized")
-            waiting_time, event = min(
+            waiting_time, event, state = min(
                 (
-                    event_rates[event].waiting_time_rv(
-                        active_nodes.values(),
-                        rate_multiplier=rate_multipliers[event],
+                    processes[event].waiting_time_rv(
+                        state,
+                        current_time,
+                        rate_multiplier=rate_multipliers[event]
+                        * len(state_names_active[state]),
                         seed=rng,
                     ),
                     event,
+                    state,
                 )
-                for event in event_rates
+                for event in processes
+                for state in state_names_active
+                if state_names_active[state]
             )
-            p = np.asarray(event_rates[event].λ(active_nodes.values(), waiting_time))
-            p /= sum(p)
-            event_node_name = rng.choice(list(active_nodes.keys()), p=p)
             Δt = min(waiting_time, end_time - current_time)
             current_time += Δt
             assert current_time <= end_time
-            for node in active_nodes.values():
+            # NOTE: maybe can avoid this loop, by updating times later
+            # (we now pass global time to waiting time function)
+            for node in names_nodes_active.values():
                 node.dist += Δt
                 node.t = current_time
-                # https://numpy.org/doc/stable/reference/generated/numpy.isclose.html
-                assert np.abs(node.dist - (node.t - node.up.t)) <= (
-                    1e-8 + 1e-5 * np.abs(node.t - node.up.t)
-                )
             if current_time < end_time:
-                event_node = active_nodes[event_node_name]
+                # NOTE tuple cast is inefficient
+                event_node_name = rng.choice(tuple(state_names_active[state]))
+                event_node = names_nodes_active[event_node_name]
                 event_node.event = event
-                del active_nodes[event_node.name]
-                n_active_nodes -= 1
-                total_birth_rate -= birth_response(event_node)
-                total_death_rate -= death_response(event_node)
+                del names_nodes_active[event_node_name]
+                state_names_active[getattr(event_node, state_attr)].remove(
+                    event_node.name
+                )
+                total_birth_rate -= birth_process(event_node)
+                total_death_rate -= death_process(event_node)
                 if event_node.event == self._DEATH_EVENT:
                     new_nodes = ()
                 elif event_node.event == self._BIRTH_EVENT:
@@ -303,19 +322,23 @@ class TreeNode(ete3.Tree):
                 else:
                     raise ValueError(f"invalid event {event_node.event}")
                 for new_node in new_nodes:
-                    active_nodes[new_node.name] = new_node
-                    n_active_nodes += 1
-                    total_birth_rate += birth_response(new_node)
-                    total_death_rate += death_response(new_node)
-                print_progress(current_time, n_active_nodes)
+                    names_nodes_active[new_node.name] = new_node
+                    state_names_active[getattr(new_node, state_attr)].add(new_node.name)
+                    total_birth_rate += birth_process(new_node)
+                    total_death_rate += death_process(new_node)
+                print_progress(current_time, len(names_nodes_active))
             else:
-                print_progress(current_time, n_active_nodes)
-                for node in active_nodes.values():
+                print_progress(current_time, len(names_nodes_active))
+                for node_name in tuple(names_nodes_active):
+                    node = names_nodes_active[node_name]
                     node.event = self._SURVIVAL_EVENT
-                    n_active_nodes -= 1
                     assert node.t == end_time
-                assert n_active_nodes == 0
-                active_nodes.clear()
+                    del names_nodes_active[node_name]
+                    state_names_active[getattr(node, state_attr)].remove(node.name)
+                assert not names_nodes_active
+                assert not any(
+                    state_names_active[state] for state in state_names_active
+                )
         if verbose:
             print()
         n_survivors = sum(leaf.event == self._SURVIVAL_EVENT for leaf in self)

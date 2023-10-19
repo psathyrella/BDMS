@@ -15,7 +15,7 @@ All code is freely available at `<https://github.com/WSDeWitt/BDMS>`_
    :maxdepth: 1
    :caption: Tutorials
 
-   notebooks/inhomogeneous
+   notebooks/quickstart
 
 .. toctree::
    :maxdepth: 2

@@ -8,7 +8,7 @@ dependence. Some concrete child classes are included.
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Union, Tuple
+from typing import Any, Optional, Union
 from collections.abc import Iterable, Callable
 import numpy as np
 from scipy.stats import norm, gaussian_kde
@@ -20,12 +20,15 @@ from numpy.typing import ArrayLike
 
 
 class Mutator(ABC):
-    r"""Abstract base class for generating mutation effects given
-    :py:class:`ete3.TreeNode` object, which is modified in place."""
+    r"""Abstract base class for mutators that mutate a specified
+    :py:class:`ete3.TreeNode` node attribute.
 
-    @abstractmethod
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        pass
+    Args:
+        attr: Node attribute to mutate.
+    """
+
+    def __init__(self, attr: str = "state", *args: Any, **kwargs: Any) -> None:
+        self.attr = attr
 
     @abstractmethod
     def mutate(
@@ -43,20 +46,6 @@ class Mutator(ABC):
                   :py:class:`numpy.random.Generator`, then it will be used directly.
         """
 
-    @abstractmethod
-    def logprob(self, node: ete3.TreeNode) -> float:
-        r"""Compute the log probability that a mutation effect on the parent of ``node``
-        gives ``node``.
-
-        Args:
-            node: Mutant node.
-        """
-
-    @property
-    @abstractmethod
-    def mutated_attrs(self) -> Tuple[str]:
-        """Tuple of node attribute names that may be mutated by this mutator."""
-
     def __repr__(self) -> str:
         keyval_strs = (
             f"{key}={value}"
@@ -66,40 +55,7 @@ class Mutator(ABC):
         return f"{self.__class__.__name__}({', '.join(keyval_strs)})"
 
 
-class AttrMutator(Mutator):
-    r"""Abstract base class for mutators that mutate a specified
-    :py:class:`ete3.TreeNode` node attribute.
-
-    Args:
-        attr: Node attribute to mutate.
-    """
-
-    def __init__(self, attr: str = "x", *args: Any, **kwargs: Any) -> None:
-        self.attr = attr
-
-    @property
-    def mutated_attrs(self) -> Tuple[str]:
-        return (self.attr,)
-
-    def logprob(self, node: ete3.TreeNode) -> float:
-        return self.prob(
-            getattr(node.up, self.attr), getattr(node, self.attr), log=True
-        )
-
-    @abstractmethod
-    def prob(self, attr1: ArrayLike, attr2: ArrayLike, log: bool = False) -> float:
-        r"""Convenience method to compute the probability density (if ``attr`` is
-        continuous) or mass (if ``attr`` is discrete) that a mutation event brings
-        attribute value ``attr1`` to attribute value ``attr2`` (e.g. for plotting).
-
-        Args:
-            attr1: Initial attribute value.
-            attr2: Final attribute value.
-            log: If ``True``, return the log probability density.
-        """
-
-
-class GaussianMutator(AttrMutator):
+class GaussianMutator(Mutator):
     r"""Gaussian mutation effects on a specified attribute.
 
     Args:
@@ -112,7 +68,7 @@ class GaussianMutator(AttrMutator):
         self,
         shift: float = 0.0,
         scale: float = 1.0,
-        attr: str = "x",
+        attr: str = "state",
     ):
         super().__init__(attr=attr)
         self.shift = shift
@@ -132,7 +88,7 @@ class GaussianMutator(AttrMutator):
         return self._distribution.logpdf(Δx) if log else self._distribution.pdf(Δx)
 
 
-class KdeMutator(AttrMutator):
+class KdeMutator(Mutator):
     r"""Gaussian kernel density estimator (KDE) for mutation effect on a specified
     attribute.
 
@@ -146,7 +102,7 @@ class KdeMutator(AttrMutator):
     def __init__(
         self,
         dataset: ArrayLike,
-        attr: str = "x",
+        attr: str = "state",
         bw_method: Optional[Union[str, float, Callable]] = None,
         weights: Optional[ArrayLike] = None,
     ):
@@ -169,7 +125,7 @@ class KdeMutator(AttrMutator):
         return self._distribution.logpdf(Δx) if log else self._distribution.pdf(Δx)
 
 
-class DiscreteMutator(AttrMutator):
+class DiscreteMutator(Mutator):
     r"""Mutations on a discrete space with a stochastic matrix.
 
     Args:
@@ -183,7 +139,7 @@ class DiscreteMutator(AttrMutator):
         self,
         state_space: Iterable,
         transition_matrix: ArrayLike,
-        attr: str = "x",
+        attr: str = "state",
     ):
         transition_matrix = np.asarray(transition_matrix, dtype=float)
         if not (
@@ -219,7 +175,3 @@ class DiscreteMutator(AttrMutator):
         ]
         new_value = rng.choice(states, p=transition_probs)
         setattr(node, self.attr, new_value)
-
-    def prob(self, attr1: float, attr2: float, log: bool = False) -> float:
-        p = self.transition_matrix[self.state_space[attr1], self.state_space[attr2]]
-        return np.log(p) if log else p

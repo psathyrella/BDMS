@@ -5,14 +5,17 @@ Developer install::
 
   make install
 
-Install with ETE::
+Install with PyQt5::
 
-  make install-ete
+  make install-pyqt
 
 .. warning::
 
   Pip installation of ETE's PyQt5 dependency has been found to fail (with an error like `this <https://stackoverflow.com/questions/70961915/error-while-installing-pytq5-with-pip-preparing-metadata-pyproject-toml-did-n)>`_) on ARM Mac.
-  You can instead install ETE/PyQt5 with with `Conda <http://etetoolkit.org/download/>`_.
+  You can instead install PyQt5 with Conda::
+
+    conda install pyqt=5
+  
 
 Run tests::
 
