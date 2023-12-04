@@ -150,7 +150,7 @@ class HomogeneousProcess(Process):
     def Λ(self, x: Hashable, t: float, Δt: float) -> float:
         return self.λ_homogeneous(x) * Δt
 
-    @np.errstate(divide="ignore")
+    # @np.errstate(divide="ignore")
     def Λ_inv(self, x: Hashable, t: float, τ: float) -> float:
         return τ / self.λ_homogeneous(x)
 
@@ -204,9 +204,9 @@ class InhomogeneousProcess(Process):
 
     def __init__(
         self,
+        attr: str = "state",
         quad_kwargs: dict[str, Any] = {},
         root_kwargs: dict[str, Any] = {},
-        attr: str = "state",
     ):
         super().__init__(attr=attr)
         self.quad_kwargs = quad_kwargs

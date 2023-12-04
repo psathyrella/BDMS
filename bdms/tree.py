@@ -175,6 +175,14 @@ class TreeNode(ete3.Tree):
                   If a :py:class:`numpy.random.Generator`, then it will be used
                   directly.
             verbose: Flag to indicate whether to print progress information.
+
+        Raises:
+            TreeError: If the tree is not a root node, or if the tree has already
+                       evolved, or if the number of survivors is less than
+                       ``min_survivors``, or if the population exceeds ``capacity``
+                       with ``capacity_method=None``.
+            ValueError: If ``init_population`` is greater than ``capacity`` or if
+                        the event processes refer to different node attributes.
         """
         if not self.is_root():
             raise TreeError("Cannot evolve a non-root node")
@@ -516,7 +524,7 @@ class TreeNode(ete3.Tree):
                     nstyle["vt_line_type"] = 1
                     nstyle["hz_line_width"] = 0
                 elif self._SAMPLING_EVENT not in event_cache[node]:
-                    nstyle["hz_line_width"] = 0.5
+                    nstyle["hz_line_width"] = 1
                 else:
                     nstyle["hz_line_width"] = 1
                 nstyle["hz_line_color"] = colormap[node.name]

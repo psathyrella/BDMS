@@ -34,12 +34,11 @@ dependencies = [
   "matplotlib",
   "numpy",
   "scipy",
-  "ete3",
 ]
 
 [project.optional-dependencies]
-pyqt = [
-  "pyqt5",
+ete = [
+  "ete3",
 ]
 dev = [
   "black[jupyter]",
