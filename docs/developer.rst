@@ -5,9 +5,9 @@ Developer install::
 
   make install
 
-Developer install with ETE::
+Developer install with PyQt::
 
-  make install-ete
+  make install-pyqt5
 
 .. warning::
 
