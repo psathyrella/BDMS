@@ -7,7 +7,7 @@ Developer install::
 
 Developer install with PyQt::
 
-  make install-pyqt5
+  make install-pyqt
 
 .. warning::
 
