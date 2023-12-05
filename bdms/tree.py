@@ -9,7 +9,7 @@ from bdms import mutators, poisson
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from typing import Any, Optional, Union, Literal, Iterator, Self
+from typing import Any, Optional, Literal, Iterator, Self
 import itertools
 from collections import defaultdict
 import copy
@@ -138,7 +138,7 @@ class TreeNode(ete3.Tree):
         capacity: int = 1000,
         capacity_method: Optional[Literal["birth", "death", "hard"]] = None,
         init_population: int = 1,
-        seed: Optional[Union[int, np.random.Generator]] = None,
+        seed: Optional[int | np.random.Generator] = None,
         verbose: bool = False,
     ) -> None:
         r"""Evolve for time :math:`\Delta t`.
@@ -234,6 +234,7 @@ class TreeNode(ete3.Tree):
 
         # initialize population
         names_nodes_active = dict()
+        idx_names_active = dict()
         state_names_active = defaultdict(set)
         total_birth_rate = 0.0
         total_death_rate = 0.0
@@ -246,6 +247,7 @@ class TreeNode(ete3.Tree):
             setattr(start_node, state_attr, copy.copy(getattr(self, state_attr)))
             self.add_child(start_node)
             names_nodes_active[start_node.name] = start_node
+            idx_names_active[len(idx_names_active)] = start_node.name
             state_names_active[getattr(start_node, state_attr)].add(start_node.name)
             total_birth_rate += birth_process(start_node)
             total_death_rate += death_process(start_node)
@@ -268,10 +270,14 @@ class TreeNode(ete3.Tree):
                 ) ** (len(names_nodes_active) / capacity)
             elif capacity_method == "hard":
                 if len(names_nodes_active) > capacity:
-                    # NOTE tuple cast is inefficient
-                    node_to_die_name = rng.choice(tuple(names_nodes_active))
+                    node_to_die_idx = rng.choice(len(idx_names_active))
+                    node_to_die_name = names_nodes_active[node_to_die_idx]
                     node_to_die = names_nodes_active[node_to_die_name]
                     node_to_die.event = self._DEATH_EVENT
+                    idx_names_active[node_to_die_idx] = idx_names_active[
+                        len(idx_names_active) - 1
+                    ]
+                    del idx_names_active[len(idx_names_active) - 1]
                     del names_nodes_active[node_to_die.name]
                     state_names_active[getattr(node_to_die, state_attr)].remove(
                         node_to_die.name
@@ -311,10 +317,14 @@ class TreeNode(ete3.Tree):
                 node.dist += Δt
                 node.t = current_time
             if current_time < end_time:
-                # NOTE tuple cast is inefficient
-                event_node_name = rng.choice(tuple(state_names_active[state]))
+                event_node_idx = rng.choice(len(idx_names_active))
+                event_node_name = idx_names_active[event_node_idx]
                 event_node = names_nodes_active[event_node_name]
                 event_node.event = event
+                idx_names_active[event_node_idx] = idx_names_active[
+                    len(idx_names_active) - 1
+                ]
+                del idx_names_active[len(idx_names_active) - 1]
                 del names_nodes_active[event_node_name]
                 state_names_active[getattr(event_node, state_attr)].remove(
                     event_node.name
@@ -330,6 +340,7 @@ class TreeNode(ete3.Tree):
                 else:
                     raise ValueError(f"invalid event {event_node.event}")
                 for new_node in new_nodes:
+                    idx_names_active[len(idx_names_active)] = new_node.name
                     names_nodes_active[new_node.name] = new_node
                     state_names_active[getattr(new_node, state_attr)].add(new_node.name)
                     total_birth_rate += birth_process(new_node)
@@ -337,12 +348,15 @@ class TreeNode(ete3.Tree):
                 print_progress(current_time, len(names_nodes_active))
             else:
                 print_progress(current_time, len(names_nodes_active))
-                for node_name in tuple(names_nodes_active):
+                for node_idx in reversed(range(len(idx_names_active))):
+                    node_name = idx_names_active[node_idx]
                     node = names_nodes_active[node_name]
                     node.event = self._SURVIVAL_EVENT
                     assert node.t == end_time
+                    del idx_names_active[node_idx]
                     del names_nodes_active[node_name]
                     state_names_active[getattr(node, state_attr)].remove(node.name)
+                assert not idx_names_active
                 assert not names_nodes_active
                 assert not any(
                     state_names_active[state] for state in state_names_active
@@ -368,7 +382,7 @@ class TreeNode(ete3.Tree):
         self,
         n: Optional[int] = None,
         p: Optional[float] = 1.0,
-        seed: Optional[Union[int, np.random.Generator]] = None,
+        seed: Optional[int | np.random.Generator] = None,
     ) -> None:
         """Choose :math:`n` survivor leaves from the tree, or each survivor leaf with
         probability :math:`p`, to mark as sampled (via the event attribute).
