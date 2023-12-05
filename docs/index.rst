@@ -1,7 +1,7 @@
 BDMS documentation
 ###################
 
-BDMS is a package for simulating trees from birth-death-mutation-sampling (BDMS) processes
+BDMS is a package for simulating trees from birth-death-mutation-sampling (BDMS) processes.
 All code is freely available at `<https://github.com/WSDeWitt/BDMS>`_
 
 .. toctree::
