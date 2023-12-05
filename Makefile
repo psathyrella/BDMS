@@ -3,8 +3,8 @@ default:
 install:
 	pip install -e .[dev]
 
-install-pyqt:
-	pip install -e .[dev,pyqt]
+install-ete:
+	pip install -e .[dev,ete]
 
 test:
 	pytest

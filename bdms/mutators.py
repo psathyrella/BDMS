@@ -8,7 +8,7 @@ dependence. Some concrete child classes are included.
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Union
+from typing import Any, Optional
 from collections.abc import Iterable, Callable
 import numpy as np
 from scipy.stats import norm, gaussian_kde
@@ -34,7 +34,7 @@ class Mutator(ABC):
     def mutate(
         self,
         node: ete3.TreeNode,
-        seed: Optional[Union[int, np.random.Generator]] = None,
+        seed: Optional[int | np.random.Generator] = None,
     ) -> None:
         r"""Mutate a :py:class:`ete3.TreeNode` object in place.
 
@@ -78,7 +78,7 @@ class GaussianMutator(Mutator):
     def mutate(
         self,
         node: ete3.TreeNode,
-        seed: Optional[Union[int, np.random.Generator]] = None,
+        seed: Optional[int | np.random.Generator] = None,
     ) -> None:
         new_value = getattr(node, self.attr) + self._distribution.rvs(random_state=seed)
         setattr(node, self.attr, new_value)
@@ -103,7 +103,7 @@ class KdeMutator(Mutator):
         self,
         dataset: ArrayLike,
         attr: str = "state",
-        bw_method: Optional[Union[str, float, Callable]] = None,
+        bw_method: Optional[str | float, Callable] = None,
         weights: Optional[ArrayLike] = None,
     ):
         super().__init__(attr=attr)
@@ -112,7 +112,7 @@ class KdeMutator(Mutator):
     def mutate(
         self,
         node: ete3.TreeNode,
-        seed: Optional[Union[int, np.random.Generator]] = None,
+        seed: Optional[int | np.random.Generator] = None,
     ) -> None:
         new_value = (
             getattr(node, self.attr)
@@ -165,7 +165,7 @@ class DiscreteMutator(Mutator):
     def mutate(
         self,
         node: ete3.TreeNode,
-        seed: Optional[Union[int, np.random.Generator]] = None,
+        seed: Optional[int | np.random.Generator] = None,
     ) -> None:
         rng = np.random.default_rng(seed)
 

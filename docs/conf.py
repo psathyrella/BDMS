@@ -100,7 +100,7 @@ templates_path = ["templates"]
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "sphinx_book_theme"
+html_theme = "furo"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -124,4 +124,6 @@ html_static_path = ["static"]
 # https://stackoverflow.com/questions/67473396/shorten-display-format-of-python-type-annotations-in-sphinx
 # NOTE: the sphinx_autodoc_typehints extentension above disables this,
 #       so aliases are not properly condensed.
-autodoc_type_aliases = {"ArrayLike": "ArrayLike"}
+autodoc_type_aliases = {"numpy.typing.ArrayLike": "ArrayLike"}
+
+python_use_unqualified_type_names = True

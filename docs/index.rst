@@ -12,7 +12,7 @@ All code is freely available at `<https://github.com/WSDeWitt/BDMS>`_
   cite
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Tutorials
 
    notebooks/quickstart

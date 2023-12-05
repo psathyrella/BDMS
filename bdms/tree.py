@@ -7,9 +7,8 @@ import ete3
 from ete3.coretype.tree import TreeError
 from bdms import mutators, poisson
 import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 from typing import Any, Optional, Literal, Iterator, Self
+from collections.abc import Mapping
 import itertools
 from collections import defaultdict
 import copy
@@ -33,11 +32,11 @@ class TreeNode(ete3.Tree):
 
     _name_generator = itertools.count()
 
-    _time_face = ete3.AttrFace(
-        "dist", fsize=6, ftype="Arial", fgcolor="black", formatter="%0.3g"
-    )
     _mutation_face = ete3.AttrFace(
-        "n_mutations", fsize=6, ftype="Arial", fgcolor="green"
+        "n_mutations",
+        fsize=6,
+        ftype="Arial",
+        fgcolor="black",
     )
 
     def __init__(
@@ -64,6 +63,10 @@ class TreeNode(ete3.Tree):
         (Not whether the node has been sampled as part of this sampling process).
         """
         self._pruned = False
+        """Whether pruning has been run on this tree."""
+        self._mutations_removed = False
+        """Whether unifurcating mutation event nodes have been removed from this
+        tree."""
 
     def _birth_outcome(
         self, birth_mutations: bool, mutator: mutators.Mutator, rng: np.random.Generator
@@ -480,14 +483,21 @@ class TreeNode(ete3.Tree):
                 assert len(node.children) == 1
                 node.children[0].n_mutations += 1
                 node.delete(prevent_nondicotomic=False, preserve_branch_length=True)
+        for node in self.traverse():
+            node._mutations_removed = True
 
     def render(
-        self, color_by=None, *args: Any, cbar_file: Optional[str] = None, **kwargs: Any
+        self,
+        file_name: str,
+        color_by: Optional[int | float] = "state",
+        color_map: Optional[Mapping[Any, str]] = None,
+        mode: Literal["c", "r"] = "r",
+        scale: Optional[float] = None,
+        **kwargs: Any,
     ) -> Any:
-        r"""A thin wrapper around :py:func:`ete3.TreeNode.render` that adds some custom
-        decoration and a color bar. As with the base class method, pass ``"%%inline"``
-        for the first argument to render inline in a notebook. See also ETE's tree
-        rendering `tutorial`_ and linked API docs pages there.
+        r"""A thin wrapper around :py:meth:`ete3.TreeNode.render` that adds some custom
+        decoration and a color bar. See also ETE's tree rendering `tutorial`_ and linked
+        API docs pages there.
 
         .. _tutorial: http://etetoolkit.org/docs/latest/tutorial/tutorial_drawing.html
 
@@ -503,31 +513,26 @@ class TreeNode(ete3.Tree):
         (in green text).
 
         Args:
-            color_by: If not ``None``, color tree by this attribute (must be a scalar).
-            args: Arguments to pass to :py:func:`ete3.TreeNode.render`.
-            cbar_file: If not ``None``, save color bar to this file.
-            kwargs: Keyword arguments to pass to :py:func:`ete3.TreeNode.render`.
+            file_name: Filename to save the rendered tree to. Use ``"%%inline"`` to
+                      render inline in a notebook.
+            color_by: If not ``None``, color tree by this numerical node attribute.
+            color_map: mapping from node attribute values to color names or hex codes.
+            mode: ``"c"`` for circular tree, ``"r"`` for rectangular tree.
+            scale: Scale branch lengths by this factor (ignored if a ``tree_style`` is
+                   passed in ``kwargs``). If ``None``, then the scale is chosen
+                   automatically.
+            kwargs: Keyword arguments to pass to :py:meth:`ete3.TreeNode.render`.
         """
         if "tree_style" not in kwargs:
             kwargs["tree_style"] = ete3.TreeStyle()
             kwargs["tree_style"].show_leaf_name = False
             kwargs["tree_style"].show_scale = False
-        cmap = "coolwarm_r"
-        cmap = mpl.cm.get_cmap(cmap)
-        halfrange = max(
-            abs(getattr(node, color_by) - getattr(self, color_by))
-            for node in self.traverse()
-        )
-        norm = mpl.colors.CenteredNorm(
-            vcenter=getattr(self, color_by),
-            halfrange=halfrange if halfrange > 0 else 1,
-        )
-        colormap = {
-            node.name: mpl.colors.to_hex(cmap(norm(getattr(node, color_by))))
-            for node in self.traverse()
-        }
+            kwargs["tree_style"].rotation = 90
+            kwargs["tree_style"].mode = mode
+            kwargs["tree_style"].scale = scale
+
         event_cache = self.get_cached_content(store_attr="event", leaves_only=False)
-        if (not self._pruned) or (self._MUTATION_EVENT in event_cache[self]):
+        if (not self._pruned) or (not self._mutations_removed):
             for node in self.traverse():
                 nstyle = ete3.NodeStyle()
                 if (
@@ -537,32 +542,27 @@ class TreeNode(ete3.Tree):
                     nstyle["hz_line_type"] = 1
                     nstyle["vt_line_type"] = 1
                     nstyle["hz_line_width"] = 0
+                    nstyle["vt_line_width"] = 0
                 elif self._SAMPLING_EVENT not in event_cache[node]:
                     nstyle["hz_line_width"] = 1
+                    nstyle["vt_line_width"] = 1
                 else:
-                    nstyle["hz_line_width"] = 1
-                nstyle["hz_line_color"] = colormap[node.name]
-                nstyle["fgcolor"] = colormap[node.name]
-                nstyle["size"] = 1 if node.event == self._SAMPLING_EVENT else 0
+                    nstyle["hz_line_width"] = 2
+                    nstyle["vt_line_width"] = 2
+                if color_map is not None:
+                    nstyle["vt_line_color"] = color_map[getattr(node, color_by)]
+                    if not node.is_root():
+                        nstyle["hz_line_color"] = color_map[getattr(node.up, color_by)]
+                    nstyle["fgcolor"] = color_map[getattr(node, color_by)]
+                nstyle["size"] = 2 if node.event == self._SAMPLING_EVENT else 0
                 node.set_style(nstyle)
         else:
             for node in self.traverse():
                 nstyle = ete3.NodeStyle()
-                nstyle["fgcolor"] = colormap[node.name]
+                if color_map is not None:
+                    nstyle["fgcolor"] = color_map[getattr(node, color_by)]
                 if not node.is_root() and not getattr(node.faces, "branch-bottom"):
-                    node.add_face(self._time_face, 0, position="branch-top")
                     node.add_face(self._mutation_face, 0, position="branch-bottom")
                 node.set_style(nstyle)
 
-        fig = plt.figure(figsize=(2, 1))
-        cax = fig.add_axes([0, 0, 1, 0.1])
-        plt.colorbar(
-            mpl.cm.ScalarMappable(cmap=cmap, norm=norm),
-            orientation="horizontal",
-            cax=cax,
-            label=r"$x$",
-        )
-        if cbar_file is not None:
-            plt.savefig(cbar_file)
-
-        return super().render(*args, **kwargs)
+        return super().render(file_name, **kwargs)

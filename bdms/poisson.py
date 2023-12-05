@@ -6,8 +6,8 @@ Abstract base classes for defining general Poisson point processes on
 """
 
 from __future__ import annotations
-from typing import Any, Optional, Union, Hashable, TYPE_CHECKING
-from collections.abc import Mapping
+from typing import Any, Optional, Hashable, TYPE_CHECKING
+from collections.abc import Mapping, Sequence
 from abc import ABC, abstractmethod
 from scipy.integrate import quad
 import numpy as np
@@ -59,7 +59,8 @@ class Process(ABC):
 
     @abstractmethod
     def λ(self, x: Hashable, t: float) -> float:
-        r"""Evaluate the Poisson intensity :math:`\lambda(x, t)` at point :math:`(x, t)`.
+        r"""Evaluate the Poisson intensity :math:`\lambda(x, t)` for state :math:`x` at
+        time :math:`t`.
 
         Args:
             x: State to evaluate Poisson intensity at.
@@ -102,7 +103,7 @@ class Process(ABC):
         x: Hashable,
         t: float,
         rate_multiplier: float = 1.0,
-        seed: Optional[Union[int, np.random.Generator]] = None,
+        seed: Optional[int | np.random.Generator] = None,
     ) -> float:
         r"""Sample the waiting time :math:`\Delta t` until the first event, given the
         process on state :math:`x` starting at time :math:`t`.
@@ -133,7 +134,7 @@ class HomogeneousProcess(Process):
 
     @abstractmethod
     def λ_homogeneous(self, x: Hashable) -> float:
-        r"""Evaluate homogeneous Poisson intensity :math:`\lambda(x)` at a state
+        r"""Evaluate homogeneous Poisson intensity :math:`\lambda(x)` for state
         :math:`x`.
 
         Args:
@@ -166,8 +167,10 @@ class ConstantProcess(HomogeneousProcess):
         super().__init__()
         self.value = value
 
-    def λ_homogeneous(self, x: Hashable) -> float:
-        return self.value
+    def λ_homogeneous(
+        self, x: Hashable | Sequence[Hashable] | np.ndarray[Hashable]
+    ) -> float:
+        return self.value * np.ones_like(x)
 
 
 class DiscreteProcess(HomogeneousProcess):
@@ -184,8 +187,12 @@ class DiscreteProcess(HomogeneousProcess):
         super().__init__(attr=attr)
         self.rates = rates
 
-    def λ_homogeneous(self, state: Hashable) -> float:
-        return self.rates[state]
+    def λ_homogeneous(
+        self, x: Hashable | Sequence[Hashable] | np.ndarray[Hashable]
+    ) -> float:
+        if isinstance(x, Sequence) or isinstance(x, np.ndarray):
+            return np.array([self.rates[xi] for xi in x])
+        return self.rates[x]
 
 
 class InhomogeneousProcess(Process):
@@ -193,6 +200,8 @@ class InhomogeneousProcess(Process):
 
     Default implementations of :py:meth:`Λ` and :py:meth:`Λ_inv` use quadrature and
     root-finding, respectively.
+    You may wish to override these methods in a child clasee for better performance,
+    if analytical forms are available.
 
     Args:
         attr: The name of the :py:class:`bdms.TreeNode` attribute to access.
@@ -213,27 +222,27 @@ class InhomogeneousProcess(Process):
         self.root_kwargs = root_kwargs
 
     @abstractmethod
-    def λ_inhomogeneous(self, state: Hashable, t: float) -> float:
+    def λ_inhomogeneous(self, x: Hashable, t: float) -> float:
         r"""Evaluate inhomogeneous Poisson intensity :math:`\lambda(x, t)` given state
         :math:`x`.
 
         Args:
-            state: Attribute value to evaluate Poisson intensity at.
+            x: Attribute value to evaluate Poisson intensity at.
             t: Time at which to evaluate Poisson intensity.
         """
 
-    def λ(self, state: Hashable, t: float) -> float:
-        return self.λ_inhomogeneous(state, t)
+    def λ(self, x: Hashable, t: float) -> float:
+        return self.λ_inhomogeneous(x, t)
 
-    def Λ(self, state: Hashable, t: float, Δt: float) -> float:
-        return quad(lambda Δt: sum(self.λ(state, t + Δt)), 0, Δt, **self.quad_kwargs)[0]
+    def Λ(self, x: Hashable, t: float, Δt: float) -> float:
+        return quad(lambda Δt: self.λ(x, t + Δt), 0, Δt, **self.quad_kwargs)[0]
 
-    def Λ_inv(self, state: Hashable, t: float, τ: float) -> float:
+    def Λ_inv(self, x: Hashable, t: float, τ: float) -> float:
         # NOTE: we log transform to ensure non-negative values
         sol = root_scalar(
-            lambda logΔt: self.Λ(state, t, np.exp(logΔt)) - τ,
-            fprime=lambda logΔt: self.λ(state, t + np.exp(logΔt)) * np.exp(logΔt),
-            x0=np.log(τ / self.λ(state, t)),  # initial guess based on rate at time t
+            lambda logΔt: self.Λ(x, t, np.exp(logΔt)) - τ,
+            fprime=lambda logΔt: self.λ(x, t + np.exp(logΔt)) * np.exp(logΔt),
+            x0=np.log(τ / self.λ(x, t)),  # initial guess based on rate at time t
             **self.root_kwargs,
         )
         if not sol.converged:
