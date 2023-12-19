@@ -316,15 +316,15 @@ class TreeNode(ete3.Tree):
             assert current_time <= end_time
             # NOTE: maybe can avoid this loop, by updating times later
             # (we now pass global time to waiting time function)
-            for node in names_nodes_active.values():
+            for node in names_nodes_active.values():    # MVC: This step is linear in the population size.
                 node.dist += Δt
                 node.t = current_time
             if current_time < end_time:
-                event_node_idx = rng.choice(len(idx_names_active))
+                event_node_idx = rng.choice(len(idx_names_active))    # MVC: This step should pick a node randomly from those with phenotype `state` rather than from all activate nodes.
                 event_node_name = idx_names_active[event_node_idx]
                 event_node = names_nodes_active[event_node_name]
-                event_node.event = event
-                idx_names_active[event_node_idx] = idx_names_active[
+                event_node.event = event    # MVC: Shouldn't the event occur to the child node.
+                idx_names_active[event_node_idx] = idx_names_active[    # MVC: Should we put this logic inside a RandomizedSet class?
                     len(idx_names_active) - 1
                 ]
                 del idx_names_active[len(idx_names_active) - 1]
@@ -355,7 +355,7 @@ class TreeNode(ete3.Tree):
                     node_name = idx_names_active[node_idx]
                     node = names_nodes_active[node_name]
                     node.event = self._SURVIVAL_EVENT
-                    assert node.t == end_time
+                    assert node.t == end_time    # MVC: Need to change if I remove linear time loop updating times of current nodes.
                     del idx_names_active[node_idx]
                     del names_nodes_active[node_name]
                     state_names_active[getattr(node, state_attr)].remove(node.name)
