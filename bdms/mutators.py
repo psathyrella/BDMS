@@ -1,22 +1,47 @@
-r"""Mutation effects generators
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+r"""Mutation effects generators.
 
 Abstract base class for defining generic mutation effect generators (i.e.
 :math:`\mathcal{p}(x\mid x')`), with arbitrary :py:class:`ete3.TreeNode` attribute
 dependence. Some concrete child classes are included.
+
+These classes are used to define mutation effects for simulations with
+:py:class:`bdms.TreeNode.evolve`.
+
+Example:
+
+    >>> import bdms
+
+    Define a discrete mutation model.
+
+    >>> mutator = bdms.mutators.DiscreteMutator(
+    ...     state_space=["a", "b", "c"],
+    ...     transition_matrix=[[0.0, 0.5, 0.5],
+    ...                        [0.5, 0.0, 0.5],
+    ...                        [0.5, 0.5, 0.0]],
+    ... )
+
+    Mutate a node.
+
+    >>> node = bdms.TreeNode(state="a")
+    >>> mutator.mutate(node, seed=0)
+    >>> node.state
+    'c'
 """
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Optional
-from collections.abc import Iterable, Callable
+from typing import Any
+from collections.abc import Sequence, Callable, Hashable
 import numpy as np
-from scipy.stats import norm, gaussian_kde
+import scipy.stats as stats
 import ete3
 
 # NOTE: sphinx is currently unable to present this in condensed form when the
 #       sphinx_autodoc_typehints extension is enabled
-from numpy.typing import ArrayLike
+# TODO: use ArrayLike in various phenotype/time methods (current float types)
+#       once it is available in a stable release
+# from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 
 
 class Mutator(ABC):
@@ -34,16 +59,29 @@ class Mutator(ABC):
     def mutate(
         self,
         node: ete3.TreeNode,
-        seed: Optional[int | np.random.Generator] = None,
+        seed: int | np.random.Generator | None = None,
     ) -> None:
-        r"""Mutate a :py:class:`ete3.TreeNode` object in place.
+        r"""Mutate a :py:class:`bdms.TreeNode` object in place.
 
         Args:
-            node: A :py:class:`ete3.TreeNode` to mutate.
+            node: A :py:class:`bdms.TreeNode` to mutate.
             seed: A seed to initialize the random number generation. If ``None``, then
                   fresh, unpredictable entropy will be pulled from the OS. If an
                   ``int``, then it will be used to derive the initial state. If a
                   :py:class:`numpy.random.Generator`, then it will be used directly.
+        """
+
+    @abstractmethod
+    def prob(self, attr1: float, attr2: float, log: bool = False) -> float:
+        r"""Probability of mutating from ``attr1`` to ``attr2``.
+
+        Args:
+            attr1: The initial attribute value.
+            attr2: The final attribute value.
+            log: If ``True``, return the log-probability.
+
+        Returns:
+            Mutation probability (or log probability).
         """
 
     def __repr__(self) -> str:
@@ -73,19 +111,22 @@ class GaussianMutator(Mutator):
         super().__init__(attr=attr)
         self.shift = shift
         self.scale = scale
-        self._distribution = norm(loc=self.shift, scale=self.scale)
+        self._distribution = stats.norm(loc=self.shift, scale=self.scale)
 
     def mutate(
         self,
         node: ete3.TreeNode,
-        seed: Optional[int | np.random.Generator] = None,
+        seed: int | np.random.Generator | None = None,
     ) -> None:
-        new_value = getattr(node, self.attr) + self._distribution.rvs(random_state=seed)
-        setattr(node, self.attr, new_value)
+        current_state = getattr(node, self.attr)
+        Δ = self._distribution.rvs(random_state=seed)  # type: ignore
+        setattr(node, self.attr, current_state + Δ)
 
     def prob(self, attr1: float, attr2: float, log: bool = False) -> float:
-        Δx = np.asarray(attr2) - np.asarray(attr1)
-        return self._distribution.logpdf(Δx) if log else self._distribution.pdf(Δx)
+        Δ = np.asarray(attr2) - np.asarray(attr1)
+        if log:
+            return self._distribution.logpdf(Δ)  # type: ignore
+        return self._distribution.pdf(Δ)  # type: ignore
 
 
 class KdeMutator(Mutator):
@@ -93,7 +134,7 @@ class KdeMutator(Mutator):
     attribute.
 
     Args:
-        dataset: Data to fit the KDE to.
+        data: Data to fit the KDE to.
         attr: Node attribute to mutate.
         bw_method: KDE bandwidth (see :py:class:`scipy.stats.gaussian_kde`).
         weights: Weights of data points (see :py:class:`scipy.stats.gaussian_kde`).
@@ -101,28 +142,28 @@ class KdeMutator(Mutator):
 
     def __init__(
         self,
-        dataset: ArrayLike,
+        data: NDArray[np.float64],
         attr: str = "state",
-        bw_method: Optional[str | float, Callable] = None,
-        weights: Optional[ArrayLike] = None,
+        bw_method: str | float | Callable[..., float] | None = None,
+        weights: NDArray[np.float64] | None = None,
     ):
         super().__init__(attr=attr)
-        self._distribution = gaussian_kde(dataset, bw_method, weights)
+        self._distribution = stats.gaussian_kde(data, bw_method, weights)
 
     def mutate(
         self,
         node: ete3.TreeNode,
-        seed: Optional[int | np.random.Generator] = None,
+        seed: int | np.random.Generator | None = None,
     ) -> None:
-        new_value = (
-            getattr(node, self.attr)
-            + self._distribution.resample(size=1, seed=seed)[0, 0]
-        )
-        setattr(node, self.attr, new_value)
+        current_state = getattr(node, self.attr)
+        Δ = self._distribution.resample(size=1, seed=seed)[0, 0]  # type: ignore
+        setattr(node, self.attr, current_state + Δ)
 
     def prob(self, attr1: float, attr2: float, log: bool = False) -> float:
-        Δx = np.asarray(attr2) - np.asarray(attr1)
-        return self._distribution.logpdf(Δx) if log else self._distribution.pdf(Δx)
+        Δ = np.asarray(attr2) - np.asarray(attr1)
+        if log:
+            return self._distribution.logpdf(Δ)  # type: ignore
+        return self._distribution.pdf(Δ)  # type: ignore
 
 
 class DiscreteMutator(Mutator):
@@ -137,8 +178,8 @@ class DiscreteMutator(Mutator):
 
     def __init__(
         self,
-        state_space: Iterable,
-        transition_matrix: ArrayLike,
+        state_space: Sequence[Hashable],
+        transition_matrix: NDArray[np.float64],
         attr: str = "state",
     ):
         transition_matrix = np.asarray(transition_matrix, dtype=float)
@@ -152,26 +193,42 @@ class DiscreteMutator(Mutator):
                 f"Transition matrix shape {transition_matrix.shape} "
                 f"does not match state space size {state_space}"
             )
-        if np.any(transition_matrix < 0) or np.any(
-            np.abs(transition_matrix.sum(axis=1) - 1) > 1e-4
+        if (
+            np.any(transition_matrix < 0)
+            or np.any(transition_matrix > 1)
+            or not np.allclose(transition_matrix.sum(axis=1), 1)
         ):
-            raise ValueError("Transition matrix is not a valid stochastic matrix.")
+            raise ValueError(
+                f"Transition matrix {transition_matrix} is not a valid stochastic"
+                " matrix."
+            )
 
         super().__init__(attr=attr)
 
-        self.state_space = {state: index for index, state in enumerate(state_space)}
+        self.state_space: dict[Hashable, int] = {
+            state: index for index, state in enumerate(state_space)
+        }
+        """Mapping from state values to their indices in the transition matrix."""
         self.transition_matrix = transition_matrix
 
     def mutate(
         self,
         node: ete3.TreeNode,
-        seed: Optional[int | np.random.Generator] = None,
+        seed: int | np.random.Generator | None = None,
     ) -> None:
         rng = np.random.default_rng(seed)
-
-        states = list(self.state_space.keys())
         transition_probs = self.transition_matrix[
             self.state_space[getattr(node, self.attr)], :
         ]
-        new_value = rng.choice(states, p=transition_probs)
+        new_value = rng.choice(  # type: ignore
+            list(self.state_space.keys()), p=transition_probs  # type: ignore
+        )
         setattr(node, self.attr, new_value)
+
+    def prob(self, attr1: float, attr2: float, log: bool = False) -> float:
+        result = self.transition_matrix[
+            self.state_space[attr1], self.state_space[attr2]
+        ]
+        if log:
+            result = np.log(result)
+        return result

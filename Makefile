@@ -6,18 +6,24 @@ install:
 install-pyqt:
 	pip install -e .[dev,pyqt]
 
-test:
-	pytest
-	pytest --nbval notebooks/*
+lint:
+	flake8 .
+	black --check .
+	docformatter --black **/*.py
 
 format:
 	black .
 	docformatter --black --in-place **/*.py
 
-lint:
-	flake8 .
+typecheck:
+	pyright bdms/*.py
+
+test:
+	pytest
+	pytest --doctest-modules
+	pytest --nbval docs/notebooks
 
 docs:
 	make -C docs html
 
-.PHONY: install test format lint docs
+.PHONY: install lint format typecheck test docs

@@ -1,17 +1,44 @@
-r"""Birth-death-mutation-sampling (BDMS) process simulation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+r"""Birth-death-mutation-sampling (BDMS) process simulation.
+
+Example:
+
+    >>> import bdms
+
+    Initialize a tree with a single root node.
+
+    >>> tree = bdms.Tree()
+    >>> print(tree)
+    <BLANKLINE>
+    --0
+
+    Evolve the tree for a one time unit with default parameters.
+
+    >>> tree.evolve(1.0, seed=0)
+    >>> print(tree)
+    <BLANKLINE>
+          /-2
+         |
+    -- /-|      /-6
+         |   /-|
+          \-|   \-7
+            |
+             \-5
 """
 
 from __future__ import annotations
-import ete3
-from ete3.coretype.tree import TreeError
-from bdms import bdms_utils, mutators, poisson
+import ete3  # type:ignore
+from bdms import mutators, poisson, utils
 import numpy as np
-from typing import Any, Optional, Literal, Iterator, Self
-from collections.abc import Mapping
+from typing import Any, Literal, Hashable
+from collections.abc import Mapping, Iterator, Generator
 import itertools
 from collections import defaultdict
 import copy
+import math
+
+
+class TreeError(ete3.coretype.tree.TreeError):  # type:ignore
+    pass
 
 
 class TreeNode(ete3.Tree):
@@ -19,6 +46,8 @@ class TreeNode(ete3.Tree):
 
     Args:
         t: Time of this node.
+        state: State of this node.
+        state_attr: Name of the node attribute to store the state in.
         kwargs: Keyword arguments passed to :py:class:`ete3.TreeNode` initializer.
     """
 
@@ -30,7 +59,7 @@ class TreeNode(ete3.Tree):
 
     _OFFSPRING_NUMBER = 2
 
-    _name_generator = itertools.count()
+    _name_generator: Iterator[int] = itertools.count()
 
     _mutation_face = ete3.AttrFace(
         "n_mutations",
@@ -42,6 +71,8 @@ class TreeNode(ete3.Tree):
     def __init__(
         self,
         t: float = 0,
+        state: Hashable = None,
+        state_attr: str = "state",
         **kwargs: Any,
     ) -> None:
         if "dist" not in kwargs:
@@ -49,28 +80,31 @@ class TreeNode(ete3.Tree):
         if "name" not in kwargs:
             TreeNode._name_generator = itertools.count()
             kwargs["name"] = next(self._name_generator)
-        super().__init__(**kwargs)
-        self.t = t
+        super().__init__(**kwargs)  # type:ignore
+        self.t: float = t
         """Time of the node."""
-        self.event = None
+        self.state_attr: str = state_attr
+        """Name of the node attribute to store the state in."""
+        setattr(self, state_attr, state)
+        self.event: str | None = None
         """Event at this node."""
-        self.n_mutations = 0
+        self.n_mutations: int = 0
         """Number of mutations on the branch above this node (zero unless the tree has
         been pruned above this node, removing mutation event nodes)."""
-        self._sampled = False
+        self._sampled: bool = False
         """Whether sampling has been run on this tree.
 
         (Not whether the node has been sampled as part of this sampling process).
         """
-        self._pruned = False
+        self._pruned: bool = False
         """Whether pruning has been run on this tree."""
-        self._mutations_removed = False
+        self._mutations_removed: bool = False
         """Whether unifurcating mutation event nodes have been removed from this
         tree."""
 
     def _birth_outcome(
         self, birth_mutations: bool, mutator: mutators.Mutator, rng: np.random.Generator
-    ) -> Iterator[Self]:
+    ) -> Generator[TreeNode, None, None]:
         r"""Generate the outcome of a birth event at this node.
 
         Args:
@@ -100,15 +134,15 @@ class TreeNode(ete3.Tree):
                 setattr(
                     grandchild, mutator.attr, copy.copy(getattr(child, mutator.attr))
                 )
-                child.add_child(grandchild)
+                child.add_child(grandchild)  # type:ignore
                 yield grandchild
             else:
                 yield child
-            self.add_child(child)
+            self.add_child(child)  # type:ignore
 
     def _mutation_outcome(
         self, mutator: mutators.Mutator, rng: np.random.Generator
-    ) -> Iterator[Self]:
+    ) -> Generator[TreeNode, None, None]:
         r"""Generate the outcome of a mutation event at this node.
 
         Args:
@@ -126,7 +160,7 @@ class TreeNode(ete3.Tree):
             name=next(self._name_generator),
         )
         setattr(child, mutator.attr, copy.copy(getattr(self, mutator.attr)))
-        self.add_child(child)
+        self.add_child(child)  # type:ignore
         yield child
 
     def evolve(
@@ -134,14 +168,14 @@ class TreeNode(ete3.Tree):
         t: float,
         birth_process: poisson.Process = poisson.ConstantProcess(1),
         death_process: poisson.Process = poisson.ConstantProcess(0),
-        mutation_process: poisson.Process = poisson.ConstantProcess(1),
-        mutator: mutators.Mutator = mutators.GaussianMutator(shift=0, scale=1),
+        mutation_process: poisson.Process = poisson.ConstantProcess(0),
+        mutator: mutators.Mutator = mutators.DiscreteMutator((None,), np.array([[1]])),
         birth_mutations: bool = False,
         min_survivors: int = 1,
         capacity: int = 1000,
-        capacity_method: Optional[Literal["birth", "death", "hard"]] = None,
+        capacity_method: Literal["birth", "death", "hard"] | None = None,
         init_population: int = 1,
-        seed: Optional[int | np.random.Generator] = None,
+        seed: int | np.random.Generator | None = None,
         verbose: bool = False,
     ) -> None:
         r"""Evolve for time :math:`\Delta t`.
@@ -189,10 +223,10 @@ class TreeNode(ete3.Tree):
         """
         if not self.is_root():
             raise TreeError("Cannot evolve a non-root node")
-        if self.children:
+        if self.children:  # type:ignore
             raise TreeError(
                 "tree has already evolved at node "
-                f"{self.name} with {len(self.children)} descendant lineages"
+                f"{self.name} with {len(self.children)} descendant lineages"  # type:ignore # noqa:E501
             )
         if init_population > capacity:
             raise ValueError(f"{init_population=} must be less than {capacity=}")
@@ -219,12 +253,12 @@ class TreeNode(ete3.Tree):
 
         if verbose:
 
-            def print_progress(current_time, n_nodes_active):
+            def print_progress(current_time: float, n_nodes_active: int):
                 print(f"t={current_time:.3f}, n={n_nodes_active}", end="   \r")
 
         else:
 
-            def print_progress(current_time, n_nodes_active):
+            def print_progress(current_time: float, n_nodes_active: int):
                 pass
 
         current_time = self.t
@@ -236,9 +270,11 @@ class TreeNode(ete3.Tree):
         }
 
         # initialize population
-        names_nodes_all = dict()
-        names_active = bdms_utils.RandomizedSet()
-        state_names_active = defaultdict(bdms_utils.RandomizedSet)
+        names_nodes_all: dict[str, TreeNode] = dict()
+        names_active = utils.RandomizedSet()
+        state_names_active: defaultdict[str, utils.RandomizedSet] = defaultdict(
+            utils.RandomizedSet
+        )
         total_birth_rate = 0.0
         total_death_rate = 0.0
         for _ in range(init_population):
@@ -248,44 +284,46 @@ class TreeNode(ete3.Tree):
                 name=next(self._name_generator),
             )
             setattr(start_node, state_attr, copy.copy(getattr(self, state_attr)))
-            self.add_child(start_node)
-            names_nodes_all[start_node.name] = start_node
-            names_active.add(start_node.name)
-            state_names_active[getattr(start_node, state_attr)].add(start_node.name)
+            self.add_child(start_node)  # type:ignore
+            names_nodes_all[start_node.name] = start_node  # type:ignore
+            names_active.add(start_node.name)  # type:ignore
+            state_names_active[getattr(start_node, state_attr)].add(
+                start_node.name
+            )  # type:ignore
             total_birth_rate += birth_process(start_node)
             total_death_rate += death_process(start_node)
 
         # initialize rate multipliers, which are used to modulate
         # rates in accordance with the carrying capacity
-        rate_multipliers = {
+        rate_multipliers: dict[str, float] = {
             self._BIRTH_EVENT: 1.0,
             self._DEATH_EVENT: 1.0,
             self._MUTATION_EVENT: 1.0,
         }
-        while names_active.size > 0:
+        while len(names_active) > 0:
             if capacity_method == "birth":
-                rate_multipliers[self._BIRTH_EVENT] = (
+                rate_multipliers[self._BIRTH_EVENT] = (  # type:ignore
                     total_death_rate / total_birth_rate
-                ) ** (names_active.size / capacity)
+                ) ** (len(names_active) / capacity)
             elif capacity_method == "death":
-                rate_multipliers[self._DEATH_EVENT] = (
+                rate_multipliers[self._DEATH_EVENT] = (  # type:ignore
                     total_birth_rate / total_death_rate
-                ) ** (names_active.size / capacity)
+                ) ** (len(names_active) / capacity)
             elif capacity_method == "hard":
-                if names_active.size > capacity:
-                    node_to_die_name = names_active.choice(rng)
-                    node_to_die = names_nodes_all[node_to_die_name]
-                    node_to_die.dist = current_time - node_to_die.up.t
+                if len(names_active) > capacity:
+                    node_to_die_name = names_active.choice(rng)  # type:ignore
+                    node_to_die = names_nodes_all[node_to_die_name]  # type:ignore
+                    node_to_die.dist = current_time - node_to_die.up.t  # type:ignore
                     node_to_die.event = self._DEATH_EVENT
                     node_to_die.t = current_time
                     names_active.remove(node_to_die_name)
                     state_names_active[getattr(node_to_die, state_attr)].remove(
-                        node_to_die.name
+                        node_to_die.name  # type:ignore
                     )
                     total_birth_rate -= birth_process(node_to_die)
                     total_death_rate -= death_process(node_to_die)
             elif capacity_method is None:
-                if names_active.size > capacity:
+                if len(names_active) > capacity:
                     self._aborted_evolve_cleanup()
                     if verbose:
                         print()
@@ -298,7 +336,7 @@ class TreeNode(ete3.Tree):
                         state,
                         current_time,
                         rate_multiplier=rate_multipliers[event]
-                        * state_names_active[state].size,
+                        * len(state_names_active[state]),
                         seed=rng,
                     ),
                     event,
@@ -306,22 +344,19 @@ class TreeNode(ete3.Tree):
                 )
                 for event in processes
                 for state in state_names_active
-                if state_names_active[state].size > 0
+                if len(state_names_active[state]) > 0
             )
-            Δt = min(waiting_time, end_time - current_time)
+            Δt = float(np.minimum(waiting_time, end_time - current_time))
             current_time += Δt
-            assert current_time <= end_time
-            # NOTE: maybe can avoid this loop, by updating times later
-            # (we now pass global time to waiting time function)
             if current_time < end_time:
                 event_node_name = state_names_active[state].choice(rng)
-                event_node = names_nodes_all[event_node_name]
+                event_node = names_nodes_all[event_node_name]  # type:ignore
                 event_node.t = current_time
-                event_node.dist = current_time - event_node.up.t
+                event_node.dist = current_time - event_node.up.t  # type:ignore
                 event_node.event = event
                 names_active.remove(event_node_name)
                 state_names_active[getattr(event_node, state_attr)].remove(
-                    event_node.name
+                    event_node.name  # type:ignore
                 )
                 total_birth_rate -= birth_process(event_node)
                 total_death_rate -= death_process(event_node)
@@ -334,24 +369,35 @@ class TreeNode(ete3.Tree):
                 else:
                     raise ValueError(f"invalid event {event_node.event}")
                 for new_node in new_nodes:
-                    names_nodes_all[new_node.name] = new_node
-                    names_active.add(new_node.name)
-                    state_names_active[getattr(new_node, state_attr)].add(new_node.name)
+                    names_nodes_all[new_node.name] = new_node  # type:ignore
+                    names_active.add(new_node.name)  # type:ignore
+                    state_names_active[getattr(new_node, state_attr)].add(
+                        new_node.name
+                    )  # type:ignore
                     total_birth_rate += birth_process(new_node)
                     total_death_rate += death_process(new_node)
-                print_progress(current_time, names_active.size)
+                print_progress(float(current_time), len(names_active))
             else:
-                print_progress(current_time, names_active.size)
-                for node_name in names_active.as_list():
-                    node = names_nodes_all[node_name]
+                # deal with possible loss of significance
+                if current_time > end_time:
+                    # NOTE: math.isclose is much faster than np.isclose
+                    assert math.isclose(
+                        current_time, end_time
+                    ), f"{current_time=}, {end_time=}"
+                    current_time = end_time
+                print_progress(float(current_time), len(names_active))
+                for node_name in reversed(names_active):
+                    node = names_nodes_all[node_name]  # type:ignore
                     node.t = current_time
-                    node.dist = current_time - node.up.t
+                    node.dist = current_time - node.up.t  # type:ignore
                     node.event = self._SURVIVAL_EVENT
                     names_active.remove(node_name)
-                    state_names_active[getattr(node, state_attr)].remove(node.name)
-                assert names_active.size == 0
+                    state_names_active[getattr(node, state_attr)].remove(
+                        node.name  # type:ignore
+                    )
+                assert len(names_active) == 0
                 assert not any(
-                    state_names_active[state].size > 0 for state in state_names_active
+                    len(state_names_active[state]) > 0 for state in state_names_active
                 )
         if verbose:
             print()
@@ -366,15 +412,15 @@ class TreeNode(ete3.Tree):
         """Remove any children added to the root node during an aborted evolution
         attempt, and reset the node name generator."""
         for child in self.children.copy():
-            child.detach()
+            child.detach()  # type:ignore
             del child
-        TreeNode._name_generator = itertools.count(start=self.name + 1)
+        TreeNode._name_generator = itertools.count(start=self.name + 1)  # type:ignore
 
     def sample_survivors(
         self,
-        n: Optional[int] = None,
-        p: Optional[float] = 1.0,
-        seed: Optional[int | np.random.Generator] = None,
+        n: int | None = None,
+        p: float | None = 1.0,
+        seed: int | np.random.Generator | None = None,
     ) -> None:
         """Choose :math:`n` survivor leaves from the tree, or each survivor leaf with
         probability :math:`p`, to mark as sampled (via the event attribute).
@@ -386,13 +432,25 @@ class TreeNode(ete3.Tree):
                   fresh, unpredictable entropy will be pulled from the OS. If an
                   ``int``, then it will be used to derive the initial state. If a
                   :py:class:`numpy.random.Generator`, then it will be used directly.
+
+        Raises:
+            ValueError: If the tree has already been sampled below this node, or if
+                        neither ``n`` nor ``p`` is specified.
         """
         if self._sampled:
-            raise ValueError(f"tree has already been sampled below node {self.name}")
+            raise ValueError(
+                f"tree has already been sampled below node {self.name}"  # type:ignore
+            )
         rng = np.random.default_rng(seed)
-        surviving_leaves = [leaf for leaf in self if leaf.event == self._SURVIVAL_EVENT]
+        surviving_leaves: list[TreeNode] = [
+            leaf
+            for leaf in self  # type:ignore
+            if leaf.event == self._SURVIVAL_EVENT
+        ]  # type:ignore
         if n is not None:
-            for leaf in rng.choice(surviving_leaves, size=n, replace=False):
+            for leaf in rng.choice(
+                surviving_leaves, size=n, replace=False  # type:ignore
+            ):
                 leaf.event = self._SAMPLING_EVENT
         elif p is not None:
             for leaf in surviving_leaves:
@@ -400,26 +458,33 @@ class TreeNode(ete3.Tree):
                     leaf.event = self._SAMPLING_EVENT
         else:
             raise ValueError("must specify either n or p")
-        for node in self.traverse():
+        for node in self.traverse():  # type:ignore
             node._sampled = True
 
     # NOTE: this could be generalized to take an ordered array-valued t,
     #       and made efficient via ordered traversal
     def slice(self, t: float, attr: str = "x") -> list[Any]:
-        r"""Return a list of attribute ``attr`` at time :math:`t` for all lineages alive
-        at that time.
-
+        r"""
         Args:
             t: Slice the tree at time :math:`t`.
             attr: Attribute to extract from slice.
+
+        Returns:
+            List of attribute ``attr`` values at time :math:`t` for all lineages alive
+            at that time.
+
+        Raises:
+            ValueError: If the tree has not evolved or has already been pruned below
+                        this node, or if the tree has not been sampled below this node,
+                        or if ``t`` is before the root time or after the tree end time.
         """
         if self._pruned:
             raise ValueError("Cannot slice a pruned tree")
-        if not self.children:
+        if not self.children:  # type:ignore
             raise ValueError("Cannot slice an unevolved tree")
         if t < self.t:
             raise ValueError(f"Cannot slice at time {t} before root time {self.t}")
-        tree_end_time = max(node.t for node in self)
+        tree_end_time = max(node.t for node in self)  # type:ignore
         if t > tree_end_time:
             raise ValueError(
                 f"cannot slice at time {t} after tree end time {tree_end_time}"
@@ -428,60 +493,86 @@ class TreeNode(ete3.Tree):
         if self.t == t:
             return [getattr(self, attr)]
 
-        def is_leaf_fn(node):
-            return node.t >= t and node.up.t < t
+        def is_leaf_fn(node: TreeNode):
+            return node.t >= t and node.up.t < t  # type:ignore
 
         return [
-            (getattr(node, attr) if node.t == t else getattr(node.up, attr))
-            for node in self.iter_leaves(is_leaf_fn=is_leaf_fn)
+            (
+                getattr(node, attr)
+                if node.t == t  # type:ignore
+                else getattr(node.up, attr)
+            )
+            for node in self.iter_leaves(is_leaf_fn=is_leaf_fn)  # type:ignore
         ]
 
-    def prune(self) -> None:
+    def prune_unsampled(self) -> None:
         r"""Prune the tree to the subtree subtending the sampled leaves, removing
-        unobserved subtrees."""
-        if self._pruned:
-            raise ValueError(f"tree has already been pruned below node {self.name}")
-        if not self._sampled:
-            raise ValueError(f"tree has not been sampled below node {self.name}")
+        unobserved subtrees.
 
-        event_cache = self.get_cached_content(store_attr="event")
+        Raises:
+            ValueError: If the tree has not been sampled below this node, or if the
+                        tree has already been pruned below this node.
+            TreeError: If no leaves were sampled.
+        """
+        if self._pruned:
+            raise ValueError(
+                f"tree has already been pruned below node {self.name}"  # type:ignore
+            )
+        if not self._sampled:
+            raise ValueError(
+                f"tree has not been sampled below node {self.name}"  # type:ignore
+            )
+
+        event_cache: dict[TreeNode, set[str]] = self.get_cached_content(  # type:ignore
+            store_attr="event"
+        )
         if self._SAMPLING_EVENT not in event_cache[self]:
             raise TreeError("cannot prune because no leaves were sampled")
 
-        def is_leaf_fn(node):
+        def is_leaf_fn(node: TreeNode):
             return self._SAMPLING_EVENT not in event_cache[node]
 
-        for node in self.iter_leaves(is_leaf_fn=is_leaf_fn):
-            parent = node.up
-            parent.remove_child(node)
-            assert parent.event == self._BIRTH_EVENT or parent.is_root()
-            parent.delete(prevent_nondicotomic=False, preserve_branch_length=True)
-        for node in self.traverse():
+        for node in self.iter_leaves(is_leaf_fn=is_leaf_fn):  # type:ignore
+            parent = node.up  # type:ignore
+            parent.remove_child(node)  # type:ignore
+            assert parent.event == self._BIRTH_EVENT or parent.is_root()  # type:ignore
+            parent.delete(  # type:ignore
+                prevent_nondicotomic=False,
+                preserve_branch_length=True,
+            )
+        for node in self.traverse():  # type:ignore
             node._pruned = True
 
     def remove_mutation_events(self) -> None:
         r"""Remove unifurcating mutation event nodes, preserving branch length, and
         annotate mutation counts in child node ``n_mutations`` attribute.
 
-        The tree must have been pruned first with :py:meth:`prune`.
+        Raises:
+            ValueError: If the tree has not been pruned below this node with
+                        :py:meth:`prune`.
         """
         if not self._pruned:
-            raise ValueError(f"tree has not been pruned below node {self.name}")
-        for node in self.traverse(strategy="postorder"):
-            if node.event == self._MUTATION_EVENT:
-                assert len(node.children) == 1
-                node.children[0].n_mutations += 1
-                node.delete(prevent_nondicotomic=False, preserve_branch_length=True)
-        for node in self.traverse():
+            raise ValueError(
+                f"tree has not been pruned below node {self.name}"  # type:ignore
+            )
+        for node in self.traverse(strategy="postorder"):  # type:ignore
+            if node.event == self._MUTATION_EVENT:  # type:ignore
+                assert len(node.children) == 1  # type:ignore
+                node.children[0].n_mutations += 1  # type:ignore
+                node.delete(
+                    prevent_nondicotomic=False,  # type:ignore
+                    preserve_branch_length=True,
+                )
+        for node in self.traverse():  # type:ignore
             node._mutations_removed = True
 
-    def render(
+    def render(  # type:ignore
         self,
         file_name: str,
-        color_by: Optional[int | float] = "state",
-        color_map: Optional[Mapping[Any, str]] = None,
+        color_by: str | None = "state",
+        color_map: Mapping[Any, str] | None = None,
         mode: Literal["c", "r"] = "r",
-        scale: Optional[float] = None,
+        scale: float | None = None,
         **kwargs: Any,
     ) -> Any:
         r"""A thin wrapper around :py:meth:`ete3.TreeNode.render` that adds some custom
@@ -511,6 +602,9 @@ class TreeNode(ete3.Tree):
                    passed in ``kwargs``). If ``None``, then the scale is chosen
                    automatically.
             kwargs: Keyword arguments to pass to :py:meth:`ete3.TreeNode.render`.
+
+        Returns:
+            The return value of :py:meth:`ete3.TreeNode.render`.
         """
         if "tree_style" not in kwargs:
             kwargs["tree_style"] = ete3.TreeStyle()
@@ -518,40 +612,57 @@ class TreeNode(ete3.Tree):
             kwargs["tree_style"].show_scale = False
             kwargs["tree_style"].rotation = 90
             kwargs["tree_style"].mode = mode
-            kwargs["tree_style"].scale = scale
+            kwargs["tree_style"].scale = scale  # type:ignore
 
-        event_cache = self.get_cached_content(store_attr="event", leaves_only=False)
+        event_cache: dict[TreeNode, set[str]] = self.get_cached_content(  # type:ignore
+            store_attr="event", leaves_only=False
+        )
         if (not self._pruned) or (not self._mutations_removed):
-            for node in self.traverse():
+            for node in self.traverse():  # type:ignore
                 nstyle = ete3.NodeStyle()
                 if (
-                    self._SURVIVAL_EVENT not in event_cache[node]
-                    and self._SAMPLING_EVENT not in event_cache[node]
+                    self._SURVIVAL_EVENT not in event_cache[node]  # type:ignore
+                    and self._SAMPLING_EVENT not in event_cache[node]  # type:ignore
                 ):
                     nstyle["hz_line_type"] = 1
                     nstyle["vt_line_type"] = 1
                     nstyle["hz_line_width"] = 0
                     nstyle["vt_line_width"] = 0
-                elif self._SAMPLING_EVENT not in event_cache[node]:
+                elif self._SAMPLING_EVENT not in event_cache[node]:  # type:ignore
                     nstyle["hz_line_width"] = 1
                     nstyle["vt_line_width"] = 1
                 else:
                     nstyle["hz_line_width"] = 2
                     nstyle["vt_line_width"] = 2
                 if color_map is not None:
-                    nstyle["vt_line_color"] = color_map[getattr(node, color_by)]
-                    if not node.is_root():
-                        nstyle["hz_line_color"] = color_map[getattr(node.up, color_by)]
-                    nstyle["fgcolor"] = color_map[getattr(node, color_by)]
-                nstyle["size"] = 2 if node.event == self._SAMPLING_EVENT else 0
-                node.set_style(nstyle)
+                    nstyle["vt_line_color"] = color_map[
+                        getattr(node, color_by)  # type:ignore
+                    ]
+                    if not node.is_root():  # type:ignore
+                        nstyle["hz_line_color"] = color_map[
+                            getattr(node.up, color_by)  # type:ignore
+                        ]
+                    nstyle["fgcolor"] = color_map[
+                        getattr(node, color_by)  # type:ignore
+                    ]
+                if node.event == self._SAMPLING_EVENT:  # type:ignore
+                    nstyle["size"] = 2
+                else:
+                    nstyle["size"] = 0
+                node.set_style(nstyle)  # type:ignore
         else:
-            for node in self.traverse():
+            for node in self.traverse():  # type:ignore
                 nstyle = ete3.NodeStyle()
                 if color_map is not None:
-                    nstyle["fgcolor"] = color_map[getattr(node, color_by)]
-                if not node.is_root() and not getattr(node.faces, "branch-bottom"):
-                    node.add_face(self._mutation_face, 0, position="branch-bottom")
-                node.set_style(nstyle)
+                    nstyle["fgcolor"] = color_map[
+                        getattr(node, color_by)  # type:ignore
+                    ]
+                if not node.is_root() and not getattr(
+                    node.faces, "branch-bottom"
+                ):  # type:ignore # noqa:E501
+                    node.add_face(  # type:ignore
+                        self._mutation_face, 0, position="branch-bottom"
+                    )
+                node.set_style(nstyle)  # type:ignore
 
-        return super().render(file_name, **kwargs)
+        return super().render(file_name, **kwargs)  # type:ignore

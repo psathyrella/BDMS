@@ -39,26 +39,59 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     # Add a link to the Python source code for classes, functions etc.
-    "sphinx.ext.viewcode",
-    # support NumPy and Google style docstrings
-    "sphinx.ext.napoleon",
+    # NOTE: this is off to avoid a bug in sphinx parsing of ETE3 code.
+    # "sphinx.ext.viewcode",
     # Automatically document param types (less noise in class signature)
     # NOTE: this disables autodoc_type_aliases used below (i.e.
     #       numpy.typing.ArrayLike are not properly condensed).
     "sphinx_autodoc_typehints",
+    # support NumPy and Google style docstrings
+    "sphinx.ext.napoleon",
+    # autoapi
+    "autoapi.extension",
     # track to do list items
     "sphinx.ext.todo",
-    "sphinxarg.ext",
     # Copy button for code blocks
     "sphinx_copybutton",
-    # render command line output
-    # "sphinxcontrib.programoutput",
     # jupyter notebooks
     "myst_nb",
+    "sphinx.ext.graphviz",
+    "sphinx.ext.inheritance_diagram",
 ]
 
+autoapi_dirs = ["../bdms"]
+autoapi_options = [
+    "members",
+    "inherited-members",
+    # "undoc-members",  # include members without docstrings
+    "show-inheritance",
+    "show-inheritance-diagram",
+    "show-module-summary",
+    "imported-members",
+]
+autoapi_keep_files = False  # set to True to debug autoapi generated files
+autodoc_typehints = "description"
+templates_path = ["_templates"]  # the usual place for custom sphinx templates
+autoapi_template_dir = "_templates/autoapi"  # custom autoapi templates
 
-# -- Options for myst ----------------------------------------------
+# remove the autoapi main index page, which we don't use
+autoapi_add_toctree_entry = False
+
+inheritance_graph_attrs = dict(
+    dpi=200, rankdir="LR", size='"6.0, 0.5"', fontsize=14, ratio="compress"
+)
+inheritance_node_attrs = dict(
+    shape="box",
+    fontcolor="white",
+    fontsize=14,
+    height=0.75,
+    color="cornflowerblue",
+    style="filled",
+    fillcolor="cornflowerblue",
+)
+inheritance_edge_attrs = dict(penwidth=2.0, color="cornflowerblue")
+
+# options for myst
 myst_heading_anchors = 3  # auto-generate 3 levels of heading anchors
 myst_enable_extensions = ["dollarmath"]
 nb_execution_mode = (
@@ -70,7 +103,7 @@ nb_merge_streams = True
 # show todos in output
 todo_include_todos = True
 
-# Mappings for sphinx.ext.intersphinx. Projects have to have Sphinx docs (.inv file).
+# mappings for sphinx.ext.intersphinx. Projects have to have Sphinx docs (.inv file).
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -78,22 +111,7 @@ intersphinx_mapping = {
     "ete3": ("http://etetoolkit.org/docs/latest/", None),
 }
 
-autosummary_generate = True  # Turn on sphinx.ext.autosummary
-autoclass_content = "both"  # Add __init__ doc (ie. params) to class summaries
-html_show_sourcelink = (
-    False  # Remove 'view source code' from top of page (for html, not python)
-)
-autodoc_inherit_docstrings = True  # If no class summary, inherit base class summary
-
-autodoc_default_options = {
-    "members": True,
-    "member-order": "bysource",
-    "show-inheritance": True,
-    # 'special-members': '__init__',
-}
-
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ["templates"]
+napoleon_use_rtype = False  # More compact, e.g. "Returns" vs. "Return type"
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -106,10 +124,10 @@ html_theme = "furo"
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    "show_toc_level": 2,
-    "repository_url": "https://github.com/WSDeWitt/BDMS",
-    "use_repository_button": True,  # add a "link to repository" button
-    "show_navbar_depth": 2,
+    # "show_toc_level": 2,
+    # "repository_url": "https://github.com/WSDeWitt/BDMS",
+    # "use_repository_button": True,  # add a "link to repository" button
+    # "show_navbar_depth": 2,
 }
 
 # The name of an image file (relative to this directory) to place at the top

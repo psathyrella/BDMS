@@ -21,20 +21,32 @@ Run tests::
 
   make test
 
-Test notebooks::
+Lint checker::
 
-  make notebooks
+  make lint
 
 Format code::
 
   make format
 
-Lint::
+Type check::
 
-  make lint
+  make typecheck
 
 Build docs locally (you can then see the generated documentation in ``docs/_build/html/index.html``)::
 
   make docs
 
+.. note::
+
+  To render inheritance diagrams in the docs, you'll need to install `Graphviz <https://graphviz.org>`_.
+  We use the Conda package::
+
+    conda install -c conda-forge graphviz
+
 Docs are automatically deployed to github pages via a workflow on push to the main branch.
+
+Versioning
+----------
+
+We use `Hatch <https://hatch.pypa.io>`_ to manage versions.
