@@ -194,7 +194,7 @@ class HomogeneousProcess(Process):
     def Λ_inv(self, x: Hashable, t: float, τ: float) -> NDArray[np.float64]:
         rate = self.λ_homogeneous(x)
         if rate == 0:
-            return np.inf  # type: ignore
+            return np.full_like(x, np.inf, dtype=float)
 
         return τ / rate
 
@@ -235,8 +235,8 @@ class DiscreteProcess(HomogeneousProcess):
         self, x: Hashable | Sequence[Hashable] | NDArray[Any]
     ) -> NDArray[np.float64]:
         if isinstance(x, Hashable):
-            return self.rates[x]  # type: ignore
-        return np.array([self.rates[xi] for xi in x])  # type: ignore
+            return self.rates[x]  # type:ignore
+        return np.array([self.rates[xi] for xi in x])
 
 
 class InhomogeneousProcess(Process):
@@ -282,9 +282,9 @@ class InhomogeneousProcess(Process):
         return self.λ_inhomogeneous(x, t)
 
     def Λ(self, x: Hashable, t: float, Δt: float) -> NDArray[np.float64]:
-        return integrate.quad(
-            lambda Δt: self.λ(x, t + Δt), 0, Δt, **self.quad_kwargs  # type: ignore
-        )[0]
+        return integrate.quad(lambda Δt: self.λ(x, t + Δt), 0, Δt, **self.quad_kwargs)[
+            0
+        ]
 
     def Λ_inv(self, x: Hashable, t: float, τ: float) -> NDArray[np.float64]:
         # NOTE: we log transform to ensure non-negative values
@@ -294,12 +294,12 @@ class InhomogeneousProcess(Process):
         def fprime(logΔt: float):
             return self.λ(x, t + np.exp(logΔt)) * np.exp(logΔt)
 
-        sol = optimize.root_scalar(  # type: ignore
+        sol = optimize.root_scalar(
             f=f,
             fprime=fprime,
             x0=np.log(τ / self.λ(x, t)),  # initial guess based on rate at time t
             **self.root_kwargs,
         )
-        if not sol.converged:  # type: ignore
+        if not sol.converged:
             raise RuntimeError(f"Root-finding failed to converge:\n{sol}")
-        return np.exp(sol.root)  # type: ignore
+        return np.exp(sol.root)

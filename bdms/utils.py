@@ -1,7 +1,7 @@
 r"""Miscellaneous utilities needed by the rest of the package."""
 
 from __future__ import annotations
-from typing import Hashable, Iterable
+from typing import Any, Hashable, Iterable
 import numpy as np
 
 
@@ -61,8 +61,8 @@ class RandomizedSet:
     """
 
     def __init__(self, items: Iterable[Hashable] = ()):
-        self._item_to_idx: dict[Hashable, int] = {}
-        self._idx_to_item: list[Hashable] = []
+        self._item_to_idx: dict[Any, int] = {}
+        self._idx_to_item: list[Any] = []
         for item in items:
             self.add(item)
 
@@ -97,7 +97,7 @@ class RandomizedSet:
         del self._item_to_idx[item]
         del self._idx_to_item[-1]
 
-    def choice(self, seed: int | np.random.Generator | None = None) -> Hashable:
+    def choice(self, seed: int | np.random.Generator | None = None) -> Any:
         r"""Randomly sample an item from the set.
 
         Args:

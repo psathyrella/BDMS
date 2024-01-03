@@ -119,14 +119,14 @@ class GaussianMutator(Mutator):
         seed: int | np.random.Generator | None = None,
     ) -> None:
         current_state = getattr(node, self.attr)
-        Δ = self._distribution.rvs(random_state=seed)  # type: ignore
+        Δ = self._distribution.rvs(random_state=seed)
         setattr(node, self.attr, current_state + Δ)
 
     def prob(self, attr1: float, attr2: float, log: bool = False) -> float:
         Δ = np.asarray(attr2) - np.asarray(attr1)
         if log:
-            return self._distribution.logpdf(Δ)  # type: ignore
-        return self._distribution.pdf(Δ)  # type: ignore
+            return self._distribution.logpdf(Δ)  # type:ignore
+        return self._distribution.pdf(Δ)  # type:ignore
 
 
 class KdeMutator(Mutator):
@@ -156,14 +156,14 @@ class KdeMutator(Mutator):
         seed: int | np.random.Generator | None = None,
     ) -> None:
         current_state = getattr(node, self.attr)
-        Δ = self._distribution.resample(size=1, seed=seed)[0, 0]  # type: ignore
+        Δ = self._distribution.resample(size=1, seed=seed)[0, 0]
         setattr(node, self.attr, current_state + Δ)
 
     def prob(self, attr1: float, attr2: float, log: bool = False) -> float:
         Δ = np.asarray(attr2) - np.asarray(attr1)
         if log:
-            return self._distribution.logpdf(Δ)  # type: ignore
-        return self._distribution.pdf(Δ)  # type: ignore
+            return self._distribution.logpdf(Δ)
+        return self._distribution.pdf(Δ)
 
 
 class DiscreteMutator(Mutator):
@@ -205,7 +205,7 @@ class DiscreteMutator(Mutator):
 
         super().__init__(attr=attr)
 
-        self.state_space: dict[Hashable, int] = {
+        self.state_space: dict[Any, int] = {
             state: index for index, state in enumerate(state_space)
         }
         """Mapping from state values to their indices in the transition matrix."""
@@ -220,9 +220,7 @@ class DiscreteMutator(Mutator):
         transition_probs = self.transition_matrix[
             self.state_space[getattr(node, self.attr)], :
         ]
-        new_value = rng.choice(  # type: ignore
-            list(self.state_space.keys()), p=transition_probs  # type: ignore
-        )
+        new_value = rng.choice(list(self.state_space.keys()), p=transition_probs)
         setattr(node, self.attr, new_value)
 
     def prob(self, attr1: float, attr2: float, log: bool = False) -> float:
