@@ -46,10 +46,8 @@ dependencies = [
 # dev = [
 # ]
 
-[tool.hatch.build.targets.sdist]
-include = [
-  "bdms/*.py",
-]
+[tool.hatch.build.targets.wheel]
+packages = ["bdms"]
 
 [tool.hatch.version]
 path = "bdms/__init__.py"
