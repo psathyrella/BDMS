@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 # allow-direct-references = true
 
 [project]
-name = "BDMS"
+name = "bdms-sim"
 authors = [
   { name="Thanasi Bakis", email="abakis@uci.edu" },
   { name="Michael Celentano", email="mcelentano@berkeley.edu" },

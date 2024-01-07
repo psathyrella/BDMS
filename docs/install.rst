@@ -6,7 +6,7 @@ Pip
 
 .. code-block:: bash
 
-  pip install bdms
+  pip install bdms-sim
 
 
 Conda
