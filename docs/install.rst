@@ -4,13 +4,9 @@ Installation
 Pip
 ===
 
-.. todo::
-  publish PyPi package
-
-
 .. code-block:: bash
 
-  pip install git+https://github.com/WSDeWitt/BDMS
+  pip install bdms
 
 
 Conda
