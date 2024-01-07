@@ -3,9 +3,13 @@ Developer tools
 
 We use `hatch <https://hatch.pypa.io>`_ to manage install, CI/testing, docs build, and versioning.
 
-Create and enter the dev environment::
+Create the dev environment::
 
   hatch env create
+
+If you want to activate the dev environment on the terminal,
+run the following command (but it's not if for running the subsequence hatch commands)::
+
   hatch shell
 
 Run tests::

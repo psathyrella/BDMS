@@ -33,7 +33,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install hatch
           hatch env create
-          hatch shell
 
       - name: Lint
         run: hatch run lint
