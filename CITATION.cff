@@ -1,0 +1,64 @@
+cff-version: 1.2.0
+title: BDMS
+message: 'If you use BDMS in your work, please cite as follows.'
+type: software
+authors:
+  - given-names: William
+    name-particle: S.
+    family-names: DeWitt
+    affiliation: 'University of California, Berkeley'
+    email: wsdewitt@berkeley.edu
+    orcid: 'https://orcid.org/0000-0002-6802-9139'
+  - given-names: Michael
+    family-names: Celentano
+    affiliation: 'University of California, Berkeley'
+    email: mcelentano@berkeley.edu
+    orcid: 'https://orcid.org/0000-0001-9474-1827'
+  - given-names: Sebastian
+    family-names: Prillo
+    affiliation: 'University of California, Berkeley'
+    email: sprillo@berkeley.edu
+    orcid: 'https://orcid.org/0000-0002-2427-8627'
+  - given-names: Yun
+    name-particle: S.
+    family-names: Song
+    affiliation: 'University of California, Berkeley'
+    email: yss@berkeley.edu
+    orcid: 'https://orcid.org/0000-0002-0734-9868'
+  - given-names: Thanasi
+    family-names: Bakis
+    affiliation: 'University of California, Irvine'
+    email: abakis@uci.edu
+    orcid: 'https://orcid.org/0000-0002-5730-1483'
+  - given-names: Volodymyr
+    name-particle: M.
+    family-names: Minin
+    affiliation: 'University of California, Irvine'
+    email: vminin@uci.edu
+    orcid: 'https://orcid.org/0000-0002-1917-9288'
+  - given-names: Duncan
+    name-particle: K.
+    family-names: Ralph
+    affiliation: Fred Hutchinson Cancer Center
+    email: dralph@fredhutch.org
+    orcid: 'https://orcid.org/0000-0002-2527-8610'
+  - given-names: Frederick
+    name-particle: A.
+    family-names: Matsen
+    name-suffix: IV
+    affiliation: Fred Hutchinson Cancer Center
+    email: matsen@fredhutch.org
+    orcid: 'https://orcid.org/0000-0003-0607-6025'
+identifiers:
+  - type: doi
+    value: none
+    description: placeholder
+repository-code: 'https://github.com/WSDeWitt/BDMS'
+url: 'https://wsdewitt.github.io/BDMS'
+abstract: >-
+  BDMS is a Python package for simulating trees from
+  birth-death-mutation-sampling (BDMS) processes. It
+  is developed by collaborators at the University of
+  California, Berkeley and the University of
+  California, Irvine, and the Fred Hutchinson Cancer.
+license: MIT
