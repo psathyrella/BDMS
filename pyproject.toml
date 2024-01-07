@@ -41,9 +41,15 @@ dependencies = [
 "Bug Tracker" = "https://github.com/WSDeWitt/BDMS/issues"
 "Documentation" = "https://wsdewitt.github.io/BDMS"
 
+# NOTE: dev dependencies are handled by hatch
 # [project.optional-dependencies]
 # dev = [
 # ]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "bdms/*.py",
+]
 
 [tool.hatch.version]
 path = "bdms/__init__.py"
