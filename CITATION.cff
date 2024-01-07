@@ -3,8 +3,7 @@ title: BDMS
 message: 'If you use BDMS in your work, please cite as follows.'
 type: software
 authors:
-  - given-names: William
-    name-particle: S.
+  - given-names: William S.
     family-names: DeWitt
     affiliation: 'University of California, Berkeley'
     email: wsdewitt@berkeley.edu
@@ -19,8 +18,7 @@ authors:
     affiliation: 'University of California, Berkeley'
     email: sprillo@berkeley.edu
     orcid: 'https://orcid.org/0000-0002-2427-8627'
-  - given-names: Yun
-    name-particle: S.
+  - given-names: Yun S.
     family-names: Song
     affiliation: 'University of California, Berkeley'
     email: yss@berkeley.edu
@@ -30,20 +28,17 @@ authors:
     affiliation: 'University of California, Irvine'
     email: abakis@uci.edu
     orcid: 'https://orcid.org/0000-0002-5730-1483'
-  - given-names: Volodymyr
-    name-particle: M.
+  - given-names: Volodymyr M.
     family-names: Minin
     affiliation: 'University of California, Irvine'
     email: vminin@uci.edu
     orcid: 'https://orcid.org/0000-0002-1917-9288'
-  - given-names: Duncan
-    name-particle: K.
+  - given-names: Duncan K.
     family-names: Ralph
     affiliation: Fred Hutchinson Cancer Center
     email: dralph@fredhutch.org
     orcid: 'https://orcid.org/0000-0002-2527-8610'
-  - given-names: Frederick
-    name-particle: A.
+  - given-names: Frederick A.
     family-names: Matsen
     name-suffix: IV
     affiliation: Fred Hutchinson Cancer Center
