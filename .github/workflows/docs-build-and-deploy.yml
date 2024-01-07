@@ -26,7 +26,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.11
+          python-version: 3.12
           cache: pip
 
       - name: Setup Graphviz
@@ -35,11 +35,13 @@ jobs:
       - name: Install BDMS
         run: |
           python -m pip install --upgrade pip
-          make install-pyqt
+          pip install hatch
+          hatch env create
+          hatch shell
 
       - name: Build 🔧
         run: |
-          make docs
+          hatch run docs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

@@ -2,7 +2,7 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.metadata]
+# [tool.hatch.metadata]
 # this allows dependencies to be specified with a url
 # allow-direct-references = true
 
@@ -41,8 +41,21 @@ dependencies = [
 "Bug Tracker" = "https://github.com/WSDeWitt/BDMS/issues"
 "Documentation" = "https://wsdewitt.github.io/BDMS"
 
-[project.optional-dependencies]
-dev = [
+# [project.optional-dependencies]
+# dev = [
+# ]
+
+[tool.hatch.version]
+path = "bdms/__init__.py"
+
+# this puts hatch envs in a .hatch directory, so vscode can find them
+
+
+# instead of using hatch envs, we put everything
+# in the project dev env for vscode intellesense
+[tool.hatch.envs.default]
+path = ".hatch"
+extra-dependencies = [
   # default
   "hatch",
   "jupyter",
@@ -67,15 +80,6 @@ dev = [
   "myst-nb",
   "pandoc",
 ]
-
-[tool.hatch.version]
-path = "bdms/__init__.py"
-
-# instead of using hatch envs, we put everything
-# in the project dev env for vscode intellesense
-# [tool.hatch.envs.default]
-# extra-dependencies = [
-# ]
 
 [tool.hatch.envs.default.scripts]
 tests = [

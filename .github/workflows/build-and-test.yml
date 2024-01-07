@@ -31,16 +31,15 @@ jobs:
       - name: Install BDMS
         run: |
           python -m pip install --upgrade pip
-          make install-pyqt
+          pip install hatch
+          hatch env create
+          hatch shell
 
       - name: Lint
-        run: make lint
-
-      - name: Type check
-        run: make typecheck
+        run: hatch run lint
 
       - name: Run tests
-        run: make test
+        run: hatch run tests
 
       - name: Test docs build
-        run: make docs
+        run: hatch run docs

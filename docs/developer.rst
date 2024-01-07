@@ -1,10 +1,12 @@
 Developer tools
 ===============
 
-Developer install::
+We use `hatch <https://hatch.pypa.io>`_ to manage install, CI/testing, docs build, and versioning.
 
-  We use `hatch <https://hatch.pypa.io>`_ to manage install, CI/testing, docs build, and versioning.
-  You'll need to install hatch.
+Create and enter the dev environment::
+
+  hatch env create
+  hatch shell
 
 Run tests::
 

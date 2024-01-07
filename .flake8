@@ -6,4 +6,5 @@ extend-ignore = E203
 exclude =
     .vscode,
     .conda,
+    .hatch,
     __pycache__
