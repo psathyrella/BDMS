@@ -46,8 +46,7 @@ authors:
     orcid: 'https://orcid.org/0000-0002-1917-9288'
 identifiers:
   - type: doi
-    value: none
-    description: placeholder
+    value: 10.5281/zenodo.10467425
 repository-code: 'https://github.com/WSDeWitt/BDMS'
 url: 'https://wsdewitt.github.io/BDMS'
 abstract: >-
