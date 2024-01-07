@@ -9,16 +9,16 @@ BDMS is developed by collaborators at UC Berkeley, UC Irvine, and Fred Hutchinso
 APA
 ---
 
-  DeWitt, W. S., Celentano, M., Bakis, T., Ralph, D. K., Prillo, S., Matsen, F. A., IV, Song, Y. S., & Minin, V. M. BDMS [Computer software]. https://github.com/WSDeWitt/BDMS
+  DeWitt, W. S., Celentano, M., Bakis, T., Ralph, D. K., Prillo, S., Matsen, F. A., IV, Song, Y. S., & Minin, V. M. BDMS [Computer software]. https://doi.org/10.5281/zenodo.10467425
 
-bibtex
+BibTeX
 ------
 
 .. code-block:: bibtex
 
   @software{DeWitt_BDMS,
   author = {DeWitt, William S. and Celentano, Michael and Bakis, Thanasi and Ralph, Duncan K. and Prillo, Sebastian and Matsen, IV, Frederick A. and Song, Yun S. and Minin, Volodymyr M.},
-  license = {MIT},
+  doi = {10.5281/zenodo.10467425},
   title = {{BDMS}},
-  url = {https://github.com/WSDeWitt/BDMS}
+  url = {https://wsdewitt.github.io/BDMS}
   }
