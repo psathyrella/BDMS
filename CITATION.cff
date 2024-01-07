@@ -13,37 +13,37 @@ authors:
     affiliation: 'University of California, Berkeley'
     email: mcelentano@berkeley.edu
     orcid: 'https://orcid.org/0000-0001-9474-1827'
-  - given-names: Sebastian
-    family-names: Prillo
-    affiliation: 'University of California, Berkeley'
-    email: sprillo@berkeley.edu
-    orcid: 'https://orcid.org/0000-0002-2427-8627'
-  - given-names: Yun S.
-    family-names: Song
-    affiliation: 'University of California, Berkeley'
-    email: yss@berkeley.edu
-    orcid: 'https://orcid.org/0000-0002-0734-9868'
   - given-names: Thanasi
     family-names: Bakis
     affiliation: 'University of California, Irvine'
     email: abakis@uci.edu
     orcid: 'https://orcid.org/0000-0002-5730-1483'
-  - given-names: Volodymyr M.
-    family-names: Minin
-    affiliation: 'University of California, Irvine'
-    email: vminin@uci.edu
-    orcid: 'https://orcid.org/0000-0002-1917-9288'
   - given-names: Duncan K.
     family-names: Ralph
     affiliation: Fred Hutchinson Cancer Center
     email: dralph@fredhutch.org
     orcid: 'https://orcid.org/0000-0002-2527-8610'
+  - given-names: Sebastian
+    family-names: Prillo
+    affiliation: 'University of California, Berkeley'
+    email: sprillo@berkeley.edu
+    orcid: 'https://orcid.org/0000-0002-2427-8627'
   - given-names: Frederick A.
     family-names: Matsen
     name-suffix: IV
     affiliation: Fred Hutchinson Cancer Center
     email: matsen@fredhutch.org
     orcid: 'https://orcid.org/0000-0003-0607-6025'
+  - given-names: Yun S.
+    family-names: Song
+    affiliation: 'University of California, Berkeley'
+    email: yss@berkeley.edu
+    orcid: 'https://orcid.org/0000-0002-0734-9868'
+  - given-names: Volodymyr M.
+    family-names: Minin
+    affiliation: 'University of California, Irvine'
+    email: vminin@uci.edu
+    orcid: 'https://orcid.org/0000-0002-1917-9288'
 identifiers:
   - type: doi
     value: none
