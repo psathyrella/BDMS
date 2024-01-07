@@ -33,20 +33,32 @@ dependencies = [
   "numpy",
   "scipy",
   "ete3",
-]
-
-[project.optional-dependencies]
-pyqt = [
   "pyqt5",
 ]
+
+[project.urls]
+"Homepage" = "https://github.com/WSDeWitt/BDMS"
+"Bug Tracker" = "https://github.com/WSDeWitt/BDMS/issues"
+"Documentation" = "https://wsdewitt.github.io/BDMS"
+
+[project.optional-dependencies]
 dev = [
+  # default
   "hatch",
+  "jupyter",
+  "seaborn",
+
+  # style
+  "flake8",
   "black[jupyter]",
   "docformatter",
-  "flake8",
+  "pyright",
+
+  # test
   "pytest",
   "nbval",
-  "pyright",
+
+  # docs
   "sphinx",
   "sphinx-autodoc-typehints",
   "sphinx-copybutton",
@@ -54,17 +66,33 @@ dev = [
   "furo",
   "myst-nb",
   "pandoc",
-  "jupyter",
-  "seaborn",
 ]
 
 [tool.hatch.version]
 path = "bdms/__init__.py"
 
-[project.urls]
-"Homepage" = "https://github.com/WSDeWitt/BDMS"
-"Bug Tracker" = "https://github.com/WSDeWitt/BDMS/issues"
-"Documentation" = "https://wsdewitt.github.io/BDMS"
+# instead of using hatch envs, we put everything
+# in the project dev env for vscode intellesense
+# [tool.hatch.envs.default]
+# extra-dependencies = [
+# ]
 
-[tool.pyright]
-include = ["bdms", "tests"]
+[tool.hatch.envs.default.scripts]
+tests = [
+	"pytest",
+	"pytest --doctest-modules",
+	"pytest --nbval docs/notebooks",
+]
+docs = [
+  "make -C docs html",
+]
+lint = [
+  "flake8 .",
+  "black --check .",
+  "docformatter --check **/*.py",
+  "pyright bdms/*.py",
+]
+format = [
+  "black .",
+  "docformatter --black --in-place **/*.py",
+]
