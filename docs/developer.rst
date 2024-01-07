@@ -8,7 +8,7 @@ Create the dev environment::
   hatch env create
 
 If you want to activate the dev environment on the terminal,
-run the following command (but it's not if for running the subsequence hatch commands)::
+run the following command (but it's not necessary for running the subsequent hatch commands)::
 
   hatch shell
 

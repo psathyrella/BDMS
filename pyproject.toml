@@ -93,7 +93,7 @@ docs = [
 lint = [
   "flake8 .",
   "black --check .",
-  "docformatter --check **/*.py",
+  "docformatter --black --check **/*.py",
   "pyright bdms/*.py",
 ]
 format = [
