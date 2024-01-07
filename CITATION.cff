@@ -1,7 +1,6 @@
 cff-version: 1.2.0
 title: BDMS
 message: 'If you use BDMS in your work, please cite as follows.'
-type: software
 authors:
   - given-names: William S.
     family-names: DeWitt
@@ -44,15 +43,5 @@ authors:
     affiliation: 'University of California, Irvine'
     email: vminin@uci.edu
     orcid: 'https://orcid.org/0000-0002-1917-9288'
-identifiers:
-  - type: doi
-    value: 10.5281/zenodo.10467425
-repository-code: 'https://github.com/WSDeWitt/BDMS'
+doi: 10.5281/zenodo.10467425
 url: 'https://wsdewitt.github.io/BDMS'
-abstract: >-
-  BDMS is a Python package for simulating trees from
-  birth-death-mutation-sampling (BDMS) processes. It
-  is developed by collaborators at the University of
-  California, Berkeley and the University of
-  California, Irvine, and the Fred Hutchinson Cancer.
-license: MIT

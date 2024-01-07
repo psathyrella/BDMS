@@ -4,7 +4,8 @@ Installation
 Pip
 ===
 
-[![PyPI package](https://github.com/WSDeWitt/BDMS/actions/workflows/publish.yml/badge.svg)](https://github.com/WSDeWitt/BDMS/actions/workflows/publish.yml)
+.. image:: https://github.com/WSDeWitt/BDMS/actions/workflows/publish.yml/badge.svg
+  :target: https://github.com/WSDeWitt/BDMS/actions/workflows/publish.yml
 
 .. code-block:: bash
 
