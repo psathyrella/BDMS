@@ -4,8 +4,8 @@ Installation
 Pip
 ===
 
-.. image:: https://github.com/WSDeWitt/BDMS/actions/workflows/publish.yml/badge.svg
-  :target: https://github.com/WSDeWitt/BDMS/actions/workflows/publish.yml
+.. image:: https://github.com/dewitt-lab/BDMS/actions/workflows/publish.yml/badge.svg
+  :target: https://github.com/dewitt-lab/BDMS/actions/workflows/publish.yml
 
 .. code-block:: bash
 

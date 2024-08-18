@@ -125,7 +125,7 @@ html_theme = "furo"
 # documentation.
 html_theme_options = {
     # "show_toc_level": 2,
-    # "repository_url": "https://github.com/WSDeWitt/BDMS",
+    # "repository_url": "https://github.com/dewitt-lab/BDMS",
     # "use_repository_button": True,  # add a "link to repository" button
     # "show_navbar_depth": 2,
 }

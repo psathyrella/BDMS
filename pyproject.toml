@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 [project]
 name = "bdms-sim"
 authors = [
-  { name="William DeWitt", email="wsdewitt@gmail.com" },
+  { name="William DeWitt", email="wsdewitt@uw.edu" },
   { name="Michael Celentano", email="mcelentano@berkeley.edu" },
   { name="Thanasi Bakis", email="abakis@uci.edu" },
   { name="Duncan Ralph", email="dkralph@gmail.com" },
@@ -36,9 +36,9 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/WSDeWitt/BDMS"
-"Bug Tracker" = "https://github.com/WSDeWitt/BDMS/issues"
-"Documentation" = "https://wsdewitt.github.io/BDMS"
+"Homepage" = "https://github.com/dewitt-lab/BDMS"
+"Bug Tracker" = "https://github.com/dewitt-lab/BDMS/issues"
+"Documentation" = "https://dewitt-lab.github.io/BDMS"
 
 # NOTE: dev dependencies are handled by hatch
 # [project.optional-dependencies]

@@ -4,8 +4,8 @@ message: 'If you use BDMS in your work, please cite as follows.'
 authors:
   - given-names: William S.
     family-names: DeWitt
-    affiliation: 'University of California, Berkeley'
-    email: wsdewitt@berkeley.edu
+    affiliation: 'University of Washington, Seattle'
+    email: wsdewitt@uw.edu
     orcid: 'https://orcid.org/0000-0002-6802-9139'
   - given-names: Michael
     family-names: Celentano
@@ -44,4 +44,4 @@ authors:
     email: vminin@uci.edu
     orcid: 'https://orcid.org/0000-0002-1917-9288'
 doi: 10.5281/zenodo.10467425
-url: 'https://wsdewitt.github.io/BDMS'
+url: 'https://dewitt-lab.github.io/BDMS'

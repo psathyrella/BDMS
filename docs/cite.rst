@@ -20,5 +20,5 @@ BibTeX
   author = {DeWitt, William S. and Celentano, Michael and Bakis, Thanasi and Ralph, Duncan K. and Prillo, Sebastian and Matsen, IV, Frederick A. and Song, Yun S. and Minin, Volodymyr M.},
   doi = {10.5281/zenodo.10467425},
   title = {{BDMS}},
-  url = {https://wsdewitt.github.io/BDMS}
+  url = {https://dewitt-lab.github.io/BDMS}
   }
