@@ -104,6 +104,10 @@ class TreeNode(ete3.Tree):
         """Whether unifurcating mutation event nodes have been removed from this
         tree."""
 
+    def copy_state(self, node, attr='state'):
+        """ Copy state of <self> to <node>. """
+        setattr(node, attr, copy.copy(getattr(self, attr)))
+
     def _birth_outcome(
         self,
         mutation_event_fn: Callable[[Any, np.random.Generator], float],
@@ -129,7 +133,7 @@ class TreeNode(ete3.Tree):
                 dist=0,
                 name=next(self._name_generator),
             )
-            setattr(child, mutator.attr, copy.copy(getattr(self, mutator.attr)))
+            self.copy_state(child, attr=mutator.attr)
             if mutation_event_fn(child, rng):
                 child.event = self._MUTATION_EVENT
                 mutator.mutate(child, seed=rng)
@@ -138,9 +142,7 @@ class TreeNode(ete3.Tree):
                     dist=0,
                     name=next(self._name_generator),
                 )
-                setattr(
-                    grandchild, mutator.attr, copy.copy(getattr(child, mutator.attr))
-                )
+                child.copy_state(grandchild, attr=mutator.attr)
                 child.add_child(grandchild)
                 yield grandchild
             else:
@@ -166,7 +168,7 @@ class TreeNode(ete3.Tree):
             dist=0,
             name=next(self._name_generator),
         )
-        setattr(child, mutator.attr, copy.copy(getattr(self, mutator.attr)))
+        self.copy_state(child, attr=mutator.attr)
         self.add_child(child)
         yield child
 
@@ -248,6 +250,7 @@ class TreeNode(ete3.Tree):
                 f"{birth_process.attr=}, {death_process.attr=}, "
                 f"{mutation_process.attr=}"
             )
+# TODO maybe don't really need this infrastructure to keep track of state attribute any more if it's always 'state'
         state_attr = birth_process.attr
         if not hasattr(self, state_attr):
             raise ValueError(
@@ -302,6 +305,12 @@ class TreeNode(ete3.Tree):
         state_names_active: defaultdict[str, utils.RandomizedSet] = defaultdict(
             utils.RandomizedSet
         )
+        def add_node_state(node):
+            names_active.add(node.name)
+            state_names_active[getattr(node, state_attr)].add(node.name)
+        def rm_node_state(node):
+            names_active.remove(node.name)
+            state_names_active[getattr(node, state_attr)].remove(node.name)
         total_birth_rate = 0.0
         total_death_rate = 0.0
         for _ in range(init_population):
@@ -310,11 +319,10 @@ class TreeNode(ete3.Tree):
                 dist=0,
                 name=next(self._name_generator),
             )
-            setattr(start_node, state_attr, copy.copy(getattr(self, state_attr)))
+            self.copy_state(start_node, attr=state_attr)
             self.add_child(start_node)
             names_nodes_all[start_node.name] = start_node
-            names_active.add(start_node.name)
-            state_names_active[getattr(start_node, state_attr)].add(start_node.name)
+            add_node_state(start_node)
             total_birth_rate += birth_process(start_node)
             total_death_rate += death_process(start_node)
 
@@ -342,10 +350,7 @@ class TreeNode(ete3.Tree):
                     node_to_die.dist = current_time - node_to_die.up.t
                     node_to_die.event = self._DEATH_EVENT
                     node_to_die.t = current_time
-                    names_active.remove(node_to_die_name)
-                    state_names_active[getattr(node_to_die, state_attr)].remove(
-                        node_to_die.name
-                    )
+                    rm_node_state(node_to_die)
                     total_birth_rate -= birth_process(node_to_die)
                     total_death_rate -= death_process(node_to_die)
             elif capacity_method == "stop":
@@ -384,10 +389,7 @@ class TreeNode(ete3.Tree):
                 assert event_node.up is not None
                 event_node.dist = current_time - event_node.up.t
                 event_node.event = event
-                names_active.remove(event_node_name)
-                state_names_active[getattr(event_node, state_attr)].remove(
-                    event_node.name
-                )
+                rm_node_state(event_node)
                 total_birth_rate -= birth_process(event_node)
                 total_death_rate -= death_process(event_node)
                 if event_node.event == self._DEATH_EVENT:
@@ -402,8 +404,7 @@ class TreeNode(ete3.Tree):
                     raise ValueError(f"invalid event {event_node.event}")
                 for new_node in new_nodes:
                     names_nodes_all[new_node.name] = new_node
-                    names_active.add(new_node.name)
-                    state_names_active[getattr(new_node, state_attr)].add(new_node.name)
+                    add_node_state(new_node)
                     total_birth_rate += birth_process(new_node)
                     total_death_rate += death_process(new_node)
                 print_progress(float(current_time), len(names_active))
@@ -422,8 +423,7 @@ class TreeNode(ete3.Tree):
                     assert node.up is not None
                     node.dist = current_time - node.up.t
                     node.event = self._SURVIVAL_EVENT
-                    names_active.remove(node_name)
-                    state_names_active[getattr(node, state_attr)].remove(node.name)
+                    rm_node_state(node)
                 assert len(names_active) == 0
                 assert not any(
                     len(state_names_active[state]) > 0 for state in state_names_active
@@ -488,7 +488,7 @@ class TreeNode(ete3.Tree):
 
     # NOTE: this could be generalized to take an ordered array-valued t,
     #       and made efficient via ordered traversal
-    def slice(self, t: float, attr: str = "x") -> list[Any]:
+    def slice(self, t: float, attr: str = "state") -> list[Any]:
         r"""
         Args:
             t: Slice the tree at time :math:`t`.
@@ -519,7 +519,8 @@ class TreeNode(ete3.Tree):
             return [getattr(self, attr)]
 
         def is_leaf_fn(node: TreeNode):
-            assert node.up is not None
+            if node.up is None:  # just assume root node isn't a leaf, whatever
+                return False
             return node.t >= t and node.up.t < t
 
         return [
@@ -561,6 +562,13 @@ class TreeNode(ete3.Tree):
             )
         for node in self.traverse():  # type:ignore
             node._pruned = True
+
+    def check_binarity(self) -> None:
+        bad_nodes = [(n.name, len(n.children)) for n in [self] + list(self.iter_descendants()) if len(n.children) not in [0, 2]]
+        if len(bad_nodes) == 0:
+            print('    tree is binary')
+        else:
+            print('    %s %d nodes have N children not in [0, 2]: %s' % ('warning', len(bad_nodes), ', '.join('%s %d'%(s, n) for s, n in bad_nodes)))
 
     def remove_mutation_events(self) -> None:
         r"""Remove unifurcating mutation event nodes, preserving branch length, and

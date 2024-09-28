@@ -206,8 +206,8 @@ class ConstantProcess(HomogeneousProcess):
         value: Constant rate.
     """
 
-    def __init__(self, value: float = 1.0):
-        super().__init__()
+    def __init__(self, value: float = 1.0, attr: str = "state"):
+        super().__init__(attr=attr)
         self.value = value
 
     def λ_homogeneous(
