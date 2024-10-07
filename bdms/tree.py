@@ -244,6 +244,8 @@ class TreeNode(ete3.Tree):
             )
         if init_population > capacity:
             raise ValueError(f"{init_population=} must be less than {capacity=}")
+        if init_population < 2 or (init_population & (init_population-1) != 0):
+            raise Exception('init_population must be a positive power of 2, but got %d' % init_population)
         if birth_process.attr != death_process.attr != mutation_process.attr:
             raise ValueError(
                 f"Event processes must refer to the same node attribute. Got: "
@@ -306,25 +308,29 @@ class TreeNode(ete3.Tree):
             utils.RandomizedSet
         )
         def add_node_state(node):
+            names_nodes_all[node.name] = node
             names_active.add(node.name)
             state_names_active[getattr(node, state_attr)].add(node.name)
         def rm_node_state(node):
             names_active.remove(node.name)
             state_names_active[getattr(node, state_attr)].remove(node.name)
+            # not sure there's really a reason to do this, but it does make the structure a lot smaller and allows to avoid a clause in the min() call
+            # if len(state_names_active[getattr(node, state_attr)]) == 0:  # remove entries that no longer have any cells
+            #     del state_names_active[getattr(node, state_attr)]
         total_birth_rate = 0.0
         total_death_rate = 0.0
-        for _ in range(init_population):
-            start_node = TreeNode(
-                t=self.t,
-                dist=0,
-                name=next(self._name_generator),
-            )
-            self.copy_state(start_node, attr=state_attr)
-            self.add_child(start_node)
-            names_nodes_all[start_node.name] = start_node
-            add_node_state(start_node)
-            total_birth_rate += birth_process(start_node)
-            total_death_rate += death_process(start_node)
+        while len(self.get_leaves()) < init_population:
+            for pnode in self.get_leaves():
+                if not pnode.is_root():  # could probably also do it for root, but stuff below seems to assume root doesn't have an event
+                    pnode.event = self._BIRTH_EVENT
+                for _ in range(2):
+                    cnode = TreeNode(t=self.t, dist=0, name=next(self._name_generator))
+                    self.copy_state(cnode, attr=state_attr)
+                    pnode.add_child(cnode)
+        for tnode in self.iter_leaves():
+            add_node_state(tnode)
+            total_birth_rate += birth_process(tnode)
+            total_death_rate += death_process(tnode)
 
         # initialize rate multipliers, which are used to modulate
         # rates in accordance with the carrying capacity
@@ -364,13 +370,14 @@ class TreeNode(ete3.Tree):
                     raise TreeError(f"{capacity=} exceeded at time={current_time}")
             else:
                 raise ValueError(f"{capacity_method=} not recognized")
+            st_name_lens = {st : len(state_names_active[st]) for st in state_names_active}  # precache lengths (much faster than recomputing in min() call loop, although still quite slow)
             waiting_time, event, state = min(
                 (
                     processes[event].waiting_time_rv(
                         state,
                         current_time,
                         rate_multiplier=rate_multipliers[event]
-                        * len(state_names_active[state]),
+                        * st_name_lens[state],
                         seed=rng,
                     ),
                     event,
@@ -378,7 +385,7 @@ class TreeNode(ete3.Tree):
                 )
                 for event in processes
                 for state in state_names_active
-                if len(state_names_active[state]) > 0
+                if st_name_lens[state] > 0
             )
             Δt = float(np.minimum(waiting_time, end_time - current_time))
             current_time += Δt
@@ -403,7 +410,6 @@ class TreeNode(ete3.Tree):
                 else:
                     raise ValueError(f"invalid event {event_node.event}")
                 for new_node in new_nodes:
-                    names_nodes_all[new_node.name] = new_node
                     add_node_state(new_node)
                     total_birth_rate += birth_process(new_node)
                     total_death_rate += death_process(new_node)
